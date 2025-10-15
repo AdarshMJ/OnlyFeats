@@ -1,14 +1,14 @@
 # OnlyFeats
 
 
-### Train Teacher-FeatureMLP first
+#### Train Teacher-FeatureMLP first
 
 ```python
     python vgae_only_feats.py --epochs 100 --eval-interval 1 --normalize-features --hidden-dims 256 512 --latent-dim 512 --batch-size 512 --beta 0.1
 ```
 
 
-### Train Student-VGAE generates both structure and feature but uses pre-trained MLP as a "prior"
+#### Train Student-VGAE generates both structure and feature but uses pre-trained MLP as a "prior"
 
 ```python
 python vgae_student_teacher.py \
@@ -23,3 +23,27 @@ python vgae_student_teacher.py \
   --normalize-features \
   --output-dir outputs_student_teacher
 ```
+
+#### Train to generate structure+features+labels
+
+```python
+python vgae_conditional.py \
+  --dataset-path data/featurehomophily0.6_graphs.pkl \
+  --csv-path data/featurehomophily0.6_log.csv \
+  --teacher-path outputs_feature_vae/best_model.pth \
+  --output-dir outputs_conditional \     
+  --epochs 10 \
+  --batch-size 32 \
+  --struct-hidden-dims 128 64 \
+  --struct-latent-dim 32 \
+  --lr 0.001 \
+  --lambda-struct 1.0 \
+  --lambda-feat 1.0 \
+  --lambda-label 1.0 \
+  --lambda-hom-pred 0.1 \
+  --lambda-label-hom 0.5 \
+  --beta 0.05 \
+  --eval-interval 1 \
+  --num-generate 5 \
+  --seed 42
+  ```
