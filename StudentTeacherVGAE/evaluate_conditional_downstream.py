@@ -2,18 +2,14 @@
 Downstream Task Evaluation for Conditional VGAE Generated Graphs
 
 Since conditional VGAE generates complete graphs (structure + features + labels),
-we can evaluate on BOTH node classification and graph classification tasks:
+we can evaluate on:
 
 1. Node Classification: Train GCN on node labels
    - Train on generated graphs, test on generated graphs
    - Train on real graphs, test on real graphs
    - Cross-domain: Train on real, test on generated (and vice versa)
 
-2. Graph Classification: Classify graphs by homophily level
-   - Treat homophily as graph-level label (low/medium/high)
-   - Use graph-level pooling + classifier
-
-3. Feature Quality: Measure homophily preservation
+2. Homophily Measurement: Measure label and feature homophily preservation
 """
 
 import argparse
@@ -25,10 +21,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader as PyGDataLoader
-from torch_geometric.nn import GCNConv, global_mean_pool, global_max_pool
+from torch_geometric.nn import GCNConv
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
+from sklearn.metrics import accuracy_score, f1_score
 import seaborn as sns
 
 
@@ -46,39 +42,6 @@ class NodeClassifier(nn.Module):
         x = F.relu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.conv2(x, edge_index)
-        return F.log_softmax(x, dim=1)
-
-
-class GraphClassifier(nn.Module):
-    """GCN + pooling for graph-level classification."""
-    def __init__(self, feat_dim, hidden_dim, num_classes, dropout=0.5):
-        super().__init__()
-        self.conv1 = GCNConv(feat_dim, hidden_dim)
-        self.conv2 = GCNConv(hidden_dim, hidden_dim)
-        
-        # Graph-level classifier
-        self.fc1 = nn.Linear(hidden_dim * 2, hidden_dim)  # Concat mean + max pool
-        self.fc2 = nn.Linear(hidden_dim, num_classes)
-        self.dropout = dropout
-    
-    def forward(self, x, edge_index, batch):
-        # Node-level GNN
-        x = self.conv1(x, edge_index)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
-        x = self.conv2(x, edge_index)
-        x = F.relu(x)
-        
-        # Graph-level pooling
-        x_mean = global_mean_pool(x, batch)
-        x_max = global_max_pool(x, batch)
-        x = torch.cat([x_mean, x_max], dim=1)
-        
-        # Classifier
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = F.dropout(x, p=self.dropout, training=self.training)
-        x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
 
@@ -128,47 +91,34 @@ def evaluate_node_classifier(model, loader, device):
     return accuracy, f1, all_preds, all_labels
 
 
-def train_graph_classifier(model, loader, optimizer, device):
-    """Train graph classifier for one epoch."""
-    model.train()
-    total_loss = 0
-    total_correct = 0
-    
-    for batch in loader:
-        batch = batch.to(device)
-        optimizer.zero_grad()
-        
-        out = model(batch.x, batch.edge_index, batch.batch)
-        loss = F.nll_loss(out, batch.graph_label)
-        loss.backward()
-        optimizer.step()
-        
-        total_loss += loss.item()
-        pred = out.argmax(dim=1)
-        total_correct += (pred == batch.graph_label).sum().item()
-    
-    return total_loss / len(loader), total_correct / len(loader.dataset)
-
-
-def evaluate_graph_classifier(model, loader, device):
-    """Evaluate graph classifier."""
+def evaluate_node_classifier_per_graph(model, graphs, device):
+    """
+    Evaluate node classifier on individual graphs.
+    Returns accuracy and F1 for each graph separately.
+    """
     model.eval()
-    all_preds = []
-    all_labels = []
+    accuracies = []
+    f1_scores = []
     
     with torch.no_grad():
-        for batch in loader:
-            batch = batch.to(device)
-            out = model(batch.x, batch.edge_index, batch.batch)
+        for graph in graphs:
+            graph = graph.to(device)
+            out = model(graph.x, graph.edge_index)
             pred = out.argmax(dim=1)
             
-            all_preds.extend(pred.cpu().numpy())
-            all_labels.extend(batch.graph_label.cpu().numpy())
+            # Per-graph accuracy and F1
+            acc = (pred == graph.y).float().mean().item()
+            
+            # F1 score (handle case where graph might have only one class)
+            try:
+                f1 = f1_score(graph.y.cpu().numpy(), pred.cpu().numpy(), average='macro')
+            except:
+                f1 = acc  # Fallback to accuracy if F1 fails
+            
+            accuracies.append(acc)
+            f1_scores.append(f1)
     
-    accuracy = accuracy_score(all_labels, all_preds)
-    f1 = f1_score(all_labels, all_preds, average='macro')
-    
-    return accuracy, f1, all_preds, all_labels
+    return accuracies, f1_scores
 
 
 # ========================= Homophily Measurement =========================
@@ -209,25 +159,29 @@ def measure_all_homophily(graphs):
 # ========================= Visualization =========================
 def plot_node_classification_results(results_dict, out_path):
     """
-    Plot node classification results.
+    Plot node classification results with error bars.
     results_dict = {
-        'Real→Real': {'acc': ..., 'f1': ...},
-        'Gen→Gen': {'acc': ..., 'f1': ...},
-        'Real→Gen': {'acc': ..., 'f1': ...},
-        'Gen→Real': {'acc': ..., 'f1': ...}
+        'Real→Real': {'acc': ..., 'std_acc': ..., 'f1': ..., 'std_f1': ...},
+        'Gen→Gen': {'acc': ..., 'std_acc': ..., 'f1': ..., 'std_f1': ...},
+        'Real→Gen': {'acc': ..., 'std_acc': ..., 'f1': ..., 'std_f1': ...},
+        'Gen→Real': {'acc': ..., 'std_acc': ..., 'f1': ..., 'std_f1': ...}
     }
     """
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     
     settings = list(results_dict.keys())
     accuracies = [results_dict[s]['acc'] for s in settings]
+    acc_stds = [results_dict[s]['std_acc'] for s in settings]
     f1_scores = [results_dict[s]['f1'] for s in settings]
+    f1_stds = [results_dict[s]['std_f1'] for s in settings]
     
     x = np.arange(len(settings))
     width = 0.35
     
-    # Accuracy
-    axes[0].bar(x, accuracies, width, color=['blue', 'red', 'purple', 'orange'], alpha=0.7)
+    # Accuracy with error bars
+    axes[0].bar(x, accuracies, width, yerr=acc_stds, capsize=5,
+                color=['blue', 'red', 'purple', 'orange'], alpha=0.7,
+                error_kw={'linewidth': 2, 'ecolor': 'black'})
     axes[0].set_ylabel('Accuracy', fontsize=20)
     axes[0].set_xticks(x)
     axes[0].set_xticklabels(settings, fontsize=14, rotation=15, ha='right')
@@ -236,8 +190,10 @@ def plot_node_classification_results(results_dict, out_path):
     axes[0].grid(axis='y', alpha=0.3)
     axes[0].axhline(y=0.33, color='gray', linestyle='--', alpha=0.5, linewidth=1)  # Random baseline (3 classes)
     
-    # F1 Score
-    axes[1].bar(x, f1_scores, width, color=['blue', 'red', 'purple', 'orange'], alpha=0.7)
+    # F1 Score with error bars
+    axes[1].bar(x, f1_scores, width, yerr=f1_stds, capsize=5,
+                color=['blue', 'red', 'purple', 'orange'], alpha=0.7,
+                error_kw={'linewidth': 2, 'ecolor': 'black'})
     axes[1].set_ylabel('Macro F1', fontsize=20)
     axes[1].set_xticks(x)
     axes[1].set_xticklabels(settings, fontsize=14, rotation=15, ha='right')
@@ -250,34 +206,6 @@ def plot_node_classification_results(results_dict, out_path):
     plt.savefig(out_path, bbox_inches='tight', dpi=300)
     plt.close()
     print(f"✓ Saved node classification results to {out_path}")
-
-
-def plot_graph_classification_results(train_acc, test_acc, conf_matrix, class_names, out_path):
-    """Plot graph classification results."""
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    
-    # Accuracy
-    metrics = ['Train', 'Test']
-    values = [train_acc, test_acc]
-    
-    axes[0].bar(metrics, values, color=['blue', 'red'], alpha=0.7, width=0.5)
-    axes[0].set_ylabel('Accuracy', fontsize=20)
-    axes[0].set_ylim([0, 1])
-    axes[0].tick_params(labelsize=16)
-    axes[0].grid(axis='y', alpha=0.3)
-    
-    # Confusion matrix
-    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
-                xticklabels=class_names, yticklabels=class_names,
-                ax=axes[1], cbar_kws={'label': 'Count'})
-    axes[1].set_xlabel('Predicted', fontsize=18)
-    axes[1].set_ylabel('True', fontsize=18)
-    axes[1].tick_params(labelsize=14)
-    
-    plt.tight_layout()
-    plt.savefig(out_path, bbox_inches='tight', dpi=300)
-    plt.close()
-    print(f"✓ Saved graph classification results to {out_path}")
 
 
 def plot_homophily_comparison(real_hom, gen_hom, out_path):
@@ -319,7 +247,6 @@ def parse_args():
                        default='outputs_conditional/generation_results.pkl',
                        help='Path to generation_results.pkl from conditional VGAE')
     parser.add_argument('--output-dir', type=str, default='outputs_conditional_downstream')
-    parser.add_argument('--train-frac', type=float, default=0.8)
     parser.add_argument('--batch-size', type=int, default=32)
     
     # Model
@@ -328,7 +255,6 @@ def parse_args():
     
     # Training
     parser.add_argument('--node-clf-epochs', type=int, default=100)
-    parser.add_argument('--graph-clf-epochs', type=int, default=50)
     parser.add_argument('--lr', type=float, default=0.01)
     parser.add_argument('--weight-decay', type=float, default=5e-4)
     
@@ -388,7 +314,19 @@ def main():
     
     print(f"✓ Generated graphs have labels")
     
-    # Split datasets
+    # MATCH DATASET SIZES: Sample real graphs to match generated graphs
+    num_gen = len(gen_graphs)
+    if len(real_graphs) > num_gen:
+        print(f"\n⚠️  Dataset size mismatch: {len(real_graphs)} real vs {num_gen} generated")
+        print(f"   Randomly sampling {num_gen} real graphs to match")
+        
+        # Random sample with fixed seed for reproducibility
+        rng = np.random.RandomState(args.seed)
+        indices = rng.choice(len(real_graphs), num_gen, replace=False)
+        real_graphs = [real_graphs[i] for i in indices]
+        print(f"   ✓ Sampled {len(real_graphs)} real graphs")
+    
+    # Split datasets (same size now)
     real_train_size = int(len(real_graphs) * args.train_frac)
     real_train = real_graphs[:real_train_size]
     real_test = real_graphs[real_train_size:]
@@ -400,15 +338,17 @@ def main():
     print(f"\nReal: {len(real_train)} train, {len(real_test)} test")
     print(f"Generated: {len(gen_train)} train, {len(gen_test)} test")
     
-    # ========== TASK 1: Node Classification ==========
+    # ========== TASK 1: Node Classification (Per-Graph Evaluation) ==========
     print("\n" + "="*60)
-    print("TASK 1: NODE CLASSIFICATION")
+    print("TASK 1: NODE CLASSIFICATION (PER-GRAPH)")
     print("="*60)
     print("Testing 4 scenarios:")
     print("  1. Real→Real:   Train on real, test on real")
     print("  2. Gen→Gen:     Train on generated, test on generated")
     print("  3. Real→Gen:    Train on real, test on generated (transfer)")
     print("  4. Gen→Real:    Train on generated, test on real (transfer)")
+    print(f"\nEach test set has {len(real_test)} graphs")
+    print("Computing per-graph accuracy with mean ± std")
     
     node_clf_results = {}
     
@@ -424,7 +364,6 @@ def main():
         
         # Create loaders
         train_loader = PyGDataLoader(train_data, batch_size=args.batch_size, shuffle=True)
-        test_loader = PyGDataLoader(test_data, batch_size=args.batch_size, shuffle=False)
         
         # Create model
         model = NodeClassifier(feat_dim, args.hidden_dim, num_classes, args.dropout).to(device)
@@ -454,21 +393,37 @@ def main():
                 print(f"  Early stopping at epoch {epoch}")
                 break
         
-        # Load best model and evaluate
+        # Load best model and evaluate PER GRAPH
         model.load_state_dict(torch.load(os.path.join(args.output_dir, f'node_clf_{name.replace("→", "_")}.pth')))
-        test_acc, test_f1, preds, labels = evaluate_node_classifier(model, test_loader, device)
         
-        print(f"  Test Accuracy: {test_acc:.4f}")
-        print(f"  Test Macro F1: {test_f1:.4f}")
+        # Evaluate on each graph individually
+        test_accs, test_f1s = evaluate_node_classifier_per_graph(model, test_data, device)
         
-        node_clf_results[name] = {'acc': test_acc, 'f1': test_f1, 'preds': preds, 'labels': labels}
+        # Compute statistics
+        mean_acc = np.mean(test_accs)
+        std_acc = np.std(test_accs)
+        mean_f1 = np.mean(test_f1s)
+        std_f1 = np.std(test_f1s)
+        
+        print(f"  Test Accuracy: {mean_acc:.4f} ± {std_acc:.4f} (over {len(test_accs)} graphs)")
+        print(f"  Test Macro F1: {mean_f1:.4f} ± {std_f1:.4f}")
+        
+        node_clf_results[name] = {
+            'acc': mean_acc, 
+            'std_acc': std_acc,
+            'f1': mean_f1, 
+            'std_f1': std_f1,
+            'acc_per_graph': test_accs,
+            'f1_per_graph': test_f1s
+        }
     
     # Summary
     print("\n" + "-"*60)
-    print("NODE CLASSIFICATION SUMMARY")
+    print("NODE CLASSIFICATION SUMMARY (PER-GRAPH STATISTICS)")
     print("-"*60)
     for name, results in node_clf_results.items():
-        print(f"{name:12s}  Acc: {results['acc']:.4f}  F1: {results['f1']:.4f}")
+        print(f"{name:12s}  Acc: {results['acc']:.4f} ± {results['std_acc']:.4f}  " +
+              f"F1: {results['f1']:.4f} ± {results['std_f1']:.4f}")
     print("-"*60)
     
     # Key insights
@@ -479,8 +434,8 @@ def main():
     gen_real_acc = node_clf_results['Gen→Real']['acc']
     
     print(f"  • Generated graph quality: {gen_gen_acc/real_real_acc*100:.1f}% of real performance")
-    print(f"  • Real→Gen transfer:       {real_gen_acc:.4f} (how well real-trained model works on gen)")
-    print(f"  • Gen→Real transfer:       {gen_real_acc:.4f} (how well gen-trained model works on real)")
+    print(f"  • Real→Gen transfer:       {real_gen_acc:.4f} ± {node_clf_results['Real→Gen']['std_acc']:.4f}")
+    print(f"  • Gen→Real transfer:       {gen_real_acc:.4f} ± {node_clf_results['Gen→Real']['std_acc']:.4f}")
     
     if real_gen_acc > 0.7:
         print("  ✓ Good transfer: Generated graphs preserve real graph structure!")
@@ -495,85 +450,7 @@ def main():
         os.path.join(args.output_dir, 'node_classification_results.png')
     )
     
-    # ========== TASK 2: Graph Classification (Homophily Level) ==========
-    print("\n" + "="*60)
-    print("TASK 2: GRAPH CLASSIFICATION")
-    print("="*60)
-    print("Classify graphs by homophily level (low/medium/high feature homophily)")
-    
-    # Assign graph-level labels based on target homophily
-    # generation_results has 3 entries: low (0.2), medium (0.6), high (0.9)
-    graph_class_map = {
-        'low_feature_hom': 0,
-        'medium_feature_hom': 1,
-        'high_feature_hom': 2
-    }
-    
-    for result in generation_results:
-        class_label = graph_class_map[result['name']]
-        for graph in result['graphs']:
-            graph.graph_label = torch.tensor(class_label, dtype=torch.long)
-    
-    # Split for graph classification
-    all_gen_graphs = []
-    for result in generation_results:
-        all_gen_graphs.extend(result['graphs'])
-    
-    train_size_graph = int(len(all_gen_graphs) * args.train_frac)
-    train_graphs_clf = all_gen_graphs[:train_size_graph]
-    test_graphs_clf = all_gen_graphs[train_size_graph:]
-    
-    print(f"Train: {len(train_graphs_clf)}, Test: {len(test_graphs_clf)}")
-    
-    # Create loaders
-    train_loader_graph = PyGDataLoader(train_graphs_clf, batch_size=args.batch_size, shuffle=True)
-    test_loader_graph = PyGDataLoader(test_graphs_clf, batch_size=args.batch_size, shuffle=False)
-    
-    # Create model
-    graph_model = GraphClassifier(feat_dim, args.hidden_dim, 3, args.dropout).to(device)
-    graph_optimizer = torch.optim.Adam(graph_model.parameters(), lr=args.lr, 
-                                       weight_decay=args.weight_decay)
-    
-    print(f"\nTraining graph classifier...")
-    best_train_acc_graph = 0
-    
-    for epoch in range(1, args.graph_clf_epochs + 1):
-        train_loss, train_acc = train_graph_classifier(graph_model, train_loader_graph, 
-                                                       graph_optimizer, device)
-        
-        if epoch % 10 == 0 or epoch == 1:
-            print(f"Epoch {epoch:03d} | Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f}")
-        
-        if train_acc > best_train_acc_graph:
-            best_train_acc_graph = train_acc
-            torch.save(graph_model.state_dict(), 
-                      os.path.join(args.output_dir, 'graph_classifier.pth'))
-    
-    # Evaluate
-    graph_model.load_state_dict(torch.load(os.path.join(args.output_dir, 'graph_classifier.pth')))
-    test_acc_graph, test_f1_graph, preds_graph, labels_graph = evaluate_graph_classifier(
-        graph_model, test_loader_graph, device
-    )
-    
-    print(f"\nGraph Classification Results:")
-    print(f"  Train Accuracy: {best_train_acc_graph:.4f}")
-    print(f"  Test Accuracy:  {test_acc_graph:.4f}")
-    print(f"  Test Macro F1:  {test_f1_graph:.4f}")
-    
-    conf_matrix_graph = confusion_matrix(labels_graph, preds_graph)
-    
-    print("\nClassification Report:")
-    print(classification_report(labels_graph, preds_graph, 
-                               target_names=['Low Hom', 'Medium Hom', 'High Hom']))
-    
-    # Plot graph classification results
-    plot_graph_classification_results(
-        best_train_acc_graph, test_acc_graph, conf_matrix_graph,
-        ['Low', 'Medium', 'High'],
-        os.path.join(args.output_dir, 'graph_classification_results.png')
-    )
-    
-    # ========== TASK 3: Homophily Measurement ==========
+    # ========== TASK 2: Homophily Measurement ==========
     print("\n" + "="*60)
     print("TASK 3: HOMOPHILY MEASUREMENT")
     print("="*60)
@@ -612,24 +489,19 @@ def main():
         f.write("CONDITIONAL VGAE DOWNSTREAM EVALUATION\n")
         f.write("="*60 + "\n\n")
         
-        f.write("TASK 1: NODE CLASSIFICATION\n")
+        f.write("TASK 1: NODE CLASSIFICATION (PER-GRAPH STATISTICS)\n")
         f.write("-"*60 + "\n")
+        f.write(f"Evaluated on {len(real_test)} test graphs per scenario\n\n")
         for name, results in node_clf_results.items():
-            f.write(f"{name:12s}  Acc: {results['acc']:.4f}  F1: {results['f1']:.4f}\n")
+            f.write(f"{name:12s}  Acc: {results['acc']:.4f} ± {results['std_acc']:.4f}  " +
+                   f"F1: {results['f1']:.4f} ± {results['std_f1']:.4f}\n")
         f.write("\nKey Metrics:\n")
         f.write(f"  Generated Quality: {gen_gen_acc/real_real_acc*100:.1f}% of real\n")
-        f.write(f"  Real→Gen Transfer: {real_gen_acc:.4f}\n")
-        f.write(f"  Gen→Real Transfer: {gen_real_acc:.4f}\n\n")
+        f.write(f"  Real→Gen Transfer: {real_gen_acc:.4f} ± {node_clf_results['Real→Gen']['std_acc']:.4f}\n")
+        f.write(f"  Gen→Real Transfer: {gen_real_acc:.4f} ± {node_clf_results['Gen→Real']['std_acc']:.4f}\n\n")
         
         f.write("="*60 + "\n")
-        f.write("TASK 2: GRAPH CLASSIFICATION\n")
-        f.write("-"*60 + "\n")
-        f.write(f"Train Accuracy: {best_train_acc_graph:.4f}\n")
-        f.write(f"Test Accuracy:  {test_acc_graph:.4f}\n")
-        f.write(f"Test Macro F1:  {test_f1_graph:.4f}\n\n")
-        
-        f.write("="*60 + "\n")
-        f.write("TASK 3: HOMOPHILY MEASUREMENT\n")
+        f.write("TASK 2: HOMOPHILY MEASUREMENT\n")
         f.write("-"*60 + "\n")
         f.write(f"Real Graphs:\n")
         f.write(f"  Label Hom:   {np.mean(real_hom['label_hom']):.4f} ± {np.std(real_hom['label_hom']):.4f}\n")
@@ -645,11 +517,10 @@ def main():
     print("="*60)
     print("\nInterpretation Guide:")
     print("  • Node Classification: Tests if generated graphs preserve node-level patterns")
-    print("  • Graph Classification: Tests if model captures homophily differences")
     print("  • Cross-domain Transfer: Measures similarity between real and generated distributions")
+    print("  • Homophily: Measures label and feature similarity along edges")
     print(f"\nOutput directory: {args.output_dir}/")
     print("  - node_classification_results.png")
-    print("  - graph_classification_results.png")
     print("  - homophily_comparison.png")
     print("  - results.txt")
 
