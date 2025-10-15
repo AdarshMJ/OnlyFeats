@@ -326,12 +326,13 @@ def main():
         real_graphs = [real_graphs[i] for i in indices]
         print(f"   ✓ Sampled {len(real_graphs)} real graphs")
     
-    # Split datasets (same size now)
-    real_train_size = int(len(real_graphs) * args.train_frac)
+    # Split datasets (80/20 train/test split)
+    train_frac = 0.8
+    real_train_size = int(len(real_graphs) * train_frac)
     real_train = real_graphs[:real_train_size]
     real_test = real_graphs[real_train_size:]
     
-    gen_train_size = int(len(gen_graphs) * args.train_frac)
+    gen_train_size = int(len(gen_graphs) * train_frac)
     gen_train = gen_graphs[:gen_train_size]
     gen_test = gen_graphs[gen_train_size:]
     
