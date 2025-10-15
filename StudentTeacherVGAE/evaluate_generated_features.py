@@ -22,7 +22,6 @@ from sklearn.metrics import accuracy_score, f1_score
 import numpy as np
 
 from vgae_only_feats import FeatureVAE
-from vgae_student_teacher import StudentTeacherVGAE
 
 
 # ========================= Simple GNN Classifier =========================
@@ -72,12 +71,12 @@ def evaluate_classifier(model, data, mask):
 
 
 # ========================= Feature Generation =========================
-def generate_features_for_graph(model, num_nodes, feat_dim, device):
+def generate_features_for_graph(teacher_model, num_nodes, feat_dim, device):
     """
     Generate node features from teacher decoder.
     
     Args:
-        model: StudentTeacherVGAE with frozen teacher decoder
+        teacher_model: FeatureVAE model (teacher)
         num_nodes: Number of nodes to generate features for
         feat_dim: Feature dimension
         device: Torch device
@@ -86,25 +85,22 @@ def generate_features_for_graph(model, num_nodes, feat_dim, device):
         x_generated: [num_nodes, feat_dim] tensor
     """
     with torch.no_grad():
-        # Sample latents from standard normal
-        z = torch.randn(num_nodes, model.struct_latent_dim, device=device)
-        
-        # Project to teacher's latent space
-        z_projected = model.latent_projection(z)
+        # Sample latents from standard normal prior
+        z = torch.randn(num_nodes, teacher_model.latent_dim, device=device)
         
         # Generate features via teacher decoder
-        x_generated = model.teacher_decoder(z_projected)
+        x_generated = teacher_model.decoder(z)
     
     return x_generated
 
 
-def create_modified_graphs(gt_graphs, model, device):
+def create_modified_graphs(gt_graphs, teacher_model, device):
     """
     Create modified graphs: GT structure + generated features + GT labels.
     
     Args:
         gt_graphs: List of ground truth PyG Data objects
-        model: StudentTeacherVGAE model
+        teacher_model: FeatureVAE model (teacher)
         device: Torch device
     
     Returns:
@@ -112,13 +108,13 @@ def create_modified_graphs(gt_graphs, model, device):
     """
     modified_graphs = []
     
-    model.eval()
+    teacher_model.eval()
     for gt_graph in gt_graphs:
         num_nodes = gt_graph.num_nodes
         feat_dim = gt_graph.x.size(1)
         
         # Generate fresh features
-        x_generated = generate_features_for_graph(model, num_nodes, feat_dim, device)
+        x_generated = generate_features_for_graph(teacher_model, num_nodes, feat_dim, device)
         
         # Create modified graph (GT structure + generated features + GT labels)
         modified_graph = Data(
@@ -287,18 +283,12 @@ def parse_args():
     parser.add_argument('--teacher-path', type=str, 
                        default='MLPFeats/best_model.pth',
                        help='Path to pre-trained teacher feature VAE')
-    parser.add_argument('--student-teacher-path', type=str,
-                       default='outputs_student_teacher_v2/best_model.pth',
-                       help='Path to trained student-teacher VGAE')
     parser.add_argument('--output-dir', type=str, 
                        default='outputs_feature_quality_eval')
     
     # Model architecture (must match training)
-    parser.add_argument('--struct-latent-dim', type=int, default=32)
-    parser.add_argument('--struct-hidden-dims', type=int, nargs='+', default=[128, 64])
     parser.add_argument('--teacher-latent-dim', type=int, default=512)
     parser.add_argument('--teacher-hidden-dims', type=int, nargs='+', default=[256, 512])
-    parser.add_argument('--gnn-type', type=str, default='gcn')
     
     # Node classification settings
     parser.add_argument('--hidden-dim', type=int, default=64,
@@ -312,8 +302,8 @@ def parse_args():
                        help='Early stopping patience')
     
     # Evaluation settings
-    parser.add_argument('--num-graphs', type=int, default=None,
-                       help='Number of graphs to evaluate (None = all)')
+    parser.add_argument('--num-graphs', type=int, default=20,
+                       help='Number of graphs to randomly sample for evaluation (default: 10)')
     parser.add_argument('--normalize-features', action='store_true',
                        help='Normalize features before classification')
     
@@ -350,8 +340,16 @@ def main():
     with open(args.gt_graphs_path, 'rb') as f:
         gt_graphs = pickle.load(f)
     
+    # Randomly sample graphs if num_graphs is specified
     if args.num_graphs is not None:
-        gt_graphs = gt_graphs[:args.num_graphs]
+        if args.num_graphs < len(gt_graphs):
+            # Random sampling with fixed seed for reproducibility
+            np.random.seed(args.seed)
+            indices = np.random.choice(len(gt_graphs), args.num_graphs, replace=False)
+            gt_graphs = [gt_graphs[i] for i in indices]
+            print(f"Randomly sampled {args.num_graphs} graphs from {len(pickle.load(open(args.gt_graphs_path, 'rb')))} total graphs")
+        else:
+            gt_graphs = gt_graphs[:args.num_graphs]
     
     feat_dim = gt_graphs[0].x.size(1)
     
@@ -384,33 +382,16 @@ def main():
     teacher_model.load_state_dict(torch.load(args.teacher_path, map_location=device))
     teacher_model.eval()
     print(f"Teacher loaded from: {args.teacher_path}")
-    
-    # Load student-teacher model
-    print("\n" + "="*60)
-    print("LOADING STUDENT-TEACHER MODEL")
-    print("="*60)
-    
-    model = StudentTeacherVGAE(
-        feat_dim=feat_dim,
-        struct_hidden_dims=args.struct_hidden_dims,
-        struct_latent_dim=args.struct_latent_dim,
-        teacher_model=teacher_model,
-        teacher_latent_dim=args.teacher_latent_dim,
-        dropout=0.1,
-        gnn_type=args.gnn_type
-    ).to(device)
-    
-    model.load_state_dict(torch.load(args.student_teacher_path, map_location=device))
-    model.eval()
-    print(f"Student-teacher loaded from: {args.student_teacher_path}")
+    print(f"Teacher latent dim: {args.teacher_latent_dim}")
     
     # Generate modified graphs
     print("\n" + "="*60)
     print("GENERATING FEATURES FOR GT GRAPHS")
     print("="*60)
     
-    modified_graphs = create_modified_graphs(gt_graphs, model, device)
+    modified_graphs = create_modified_graphs(gt_graphs, teacher_model, device)
     print(f"✓ Generated features for {len(modified_graphs)} graphs")
+    print(f"   (Sampled from {args.teacher_latent_dim}D latent space → {feat_dim}D features)")
     
     # Optional: Normalize features
     if args.normalize_features:
@@ -501,8 +482,7 @@ def main():
             f.write(f"  GT graphs: {len(gt_graphs)}\n")
             f.write(f"  Labeled graphs: {labeled_count}\n")
             f.write(f"  Feature dimension: {feat_dim}\n")
-            f.write(f"  Teacher latent dim: {args.teacher_latent_dim}\n")
-            f.write(f"  Student latent dim: {args.struct_latent_dim}\n\n")
+            f.write(f"  Teacher latent dim: {args.teacher_latent_dim}\n\n")
             
             f.write("="*60 + "\n")
             f.write("REAL FEATURES (GT Structure + Real Features)\n")
