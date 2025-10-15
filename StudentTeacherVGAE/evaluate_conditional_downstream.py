@@ -20,11 +20,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.data import Data
-from torch_geometric.loader import DataLoader as PyGDataLoader
 from torch_geometric.nn import GCNConv
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, f1_score
 import seaborn as sns
 
 
@@ -43,82 +41,6 @@ class NodeClassifier(nn.Module):
         x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.conv2(x, edge_index)
         return F.log_softmax(x, dim=1)
-
-
-# ========================= Training & Evaluation =========================
-def train_node_classifier(model, loader, optimizer, device):
-    """Train node classifier for one epoch."""
-    model.train()
-    total_loss = 0
-    total_correct = 0
-    total_nodes = 0
-    
-    for batch in loader:
-        batch = batch.to(device)
-        optimizer.zero_grad()
-        
-        out = model(batch.x, batch.edge_index)
-        loss = F.nll_loss(out, batch.y)
-        loss.backward()
-        optimizer.step()
-        
-        total_loss += loss.item()
-        pred = out.argmax(dim=1)
-        total_correct += (pred == batch.y).sum().item()
-        total_nodes += batch.num_nodes
-    
-    return total_loss / len(loader), total_correct / total_nodes
-
-
-def evaluate_node_classifier(model, loader, device):
-    """Evaluate node classifier."""
-    model.eval()
-    all_preds = []
-    all_labels = []
-    
-    with torch.no_grad():
-        for batch in loader:
-            batch = batch.to(device)
-            out = model(batch.x, batch.edge_index)
-            pred = out.argmax(dim=1)
-            
-            all_preds.extend(pred.cpu().numpy())
-            all_labels.extend(batch.y.cpu().numpy())
-    
-    accuracy = accuracy_score(all_labels, all_preds)
-    f1 = f1_score(all_labels, all_preds, average='macro')
-    
-    return accuracy, f1, all_preds, all_labels
-
-
-def evaluate_node_classifier_per_graph(model, graphs, device):
-    """
-    Evaluate node classifier on individual graphs.
-    Returns accuracy and F1 for each graph separately.
-    """
-    model.eval()
-    accuracies = []
-    f1_scores = []
-    
-    with torch.no_grad():
-        for graph in graphs:
-            graph = graph.to(device)
-            out = model(graph.x, graph.edge_index)
-            pred = out.argmax(dim=1)
-            
-            # Per-graph accuracy and F1
-            acc = (pred == graph.y).float().mean().item()
-            
-            # F1 score (handle case where graph might have only one class)
-            try:
-                f1 = f1_score(graph.y.cpu().numpy(), pred.cpu().numpy(), average='macro')
-            except:
-                f1 = acc  # Fallback to accuracy if F1 fails
-            
-            accuracies.append(acc)
-            f1_scores.append(f1)
-    
-    return accuracies, f1_scores
 
 
 # ========================= Homophily Measurement =========================
@@ -161,46 +83,31 @@ def plot_node_classification_results(results_dict, out_path):
     """
     Plot node classification results with error bars.
     results_dict = {
-        'Real→Real': {'acc': ..., 'std_acc': ..., 'f1': ..., 'std_f1': ...},
-        'Gen→Gen': {'acc': ..., 'std_acc': ..., 'f1': ..., 'std_f1': ...},
-        'Real→Gen': {'acc': ..., 'std_acc': ..., 'f1': ..., 'std_f1': ...},
-        'Gen→Real': {'acc': ..., 'std_acc': ..., 'f1': ..., 'std_f1': ...}
+        'Real→Real': {'acc': ..., 'std_acc': ...},
+        'Gen→Gen': {'acc': ..., 'std_acc': ...},
+        'Real→Gen': {'acc': ..., 'std_acc': ...},
+        'Gen→Real': {'acc': ..., 'std_acc': ...}
     }
     """
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
     
-    settings = list(results_dict.keys())
+    settings = ['Real→Real', 'Gen→Gen', 'Real→Gen', 'Gen→Real']
     accuracies = [results_dict[s]['acc'] for s in settings]
     acc_stds = [results_dict[s]['std_acc'] for s in settings]
-    f1_scores = [results_dict[s]['f1'] for s in settings]
-    f1_stds = [results_dict[s]['std_f1'] for s in settings]
     
     x = np.arange(len(settings))
-    width = 0.35
     
     # Accuracy with error bars
-    axes[0].bar(x, accuracies, width, yerr=acc_stds, capsize=5,
-                color=['blue', 'red', 'purple', 'orange'], alpha=0.7,
-                error_kw={'linewidth': 2, 'ecolor': 'black'})
-    axes[0].set_ylabel('Accuracy', fontsize=20)
-    axes[0].set_xticks(x)
-    axes[0].set_xticklabels(settings, fontsize=14, rotation=15, ha='right')
-    axes[0].set_ylim([0, 1])
-    axes[0].tick_params(labelsize=14)
-    axes[0].grid(axis='y', alpha=0.3)
-    axes[0].axhline(y=0.33, color='gray', linestyle='--', alpha=0.5, linewidth=1)  # Random baseline (3 classes)
-    
-    # F1 Score with error bars
-    axes[1].bar(x, f1_scores, width, yerr=f1_stds, capsize=5,
-                color=['blue', 'red', 'purple', 'orange'], alpha=0.7,
-                error_kw={'linewidth': 2, 'ecolor': 'black'})
-    axes[1].set_ylabel('Macro F1', fontsize=20)
-    axes[1].set_xticks(x)
-    axes[1].set_xticklabels(settings, fontsize=14, rotation=15, ha='right')
-    axes[1].set_ylim([0, 1])
-    axes[1].tick_params(labelsize=14)
-    axes[1].grid(axis='y', alpha=0.3)
-    axes[1].axhline(y=0.33, color='gray', linestyle='--', alpha=0.5, linewidth=1)
+    ax.bar(x, accuracies, yerr=acc_stds, capsize=5,
+           color=['blue', 'red', 'purple', 'orange'], alpha=0.7,
+           error_kw={'linewidth': 2, 'ecolor': 'black'})
+    ax.set_ylabel('Accuracy', fontsize=25)
+    ax.set_xticks(x)
+    ax.set_xticklabels(settings, fontsize=20, rotation=15, ha='right')
+    ax.set_ylim([0, 1])
+    ax.tick_params(labelsize=18)
+    ax.grid(axis='y', alpha=0.3)
+    ax.axhline(y=0.33, color='gray', linestyle='--', alpha=0.5, linewidth=1)  # Random baseline (3 classes)
     
     plt.tight_layout()
     plt.savefig(out_path, bbox_inches='tight', dpi=300)
@@ -339,92 +246,161 @@ def main():
     print(f"\nReal: {len(real_train)} train, {len(real_test)} test")
     print(f"Generated: {len(gen_train)} train, {len(gen_test)} test")
     
-    # ========== TASK 1: Node Classification (Per-Graph Evaluation) ==========
+    # ========== TASK 1: Node Classification (Inductive Evaluation) ==========
     print("\n" + "="*60)
-    print("TASK 1: NODE CLASSIFICATION (PER-GRAPH)")
+    print("TASK 1: NODE CLASSIFICATION")
     print("="*60)
-    print("Testing 4 scenarios:")
-    print("  1. Real→Real:   Train on real, test on real")
-    print("  2. Gen→Gen:     Train on generated, test on generated")
-    print("  3. Real→Gen:    Train on real, test on generated (transfer)")
-    print("  4. Gen→Real:    Train on generated, test on real (transfer)")
-    print(f"\nEach test set has {len(real_test)} graphs")
-    print("Computing per-graph accuracy with mean ± std")
+    print("Setup:")
+    print("  • Real→Real & Gen→Gen: Train/test split WITHIN each graph (30 graphs each)")
+    print("  • Real→Gen & Gen→Real: Train on one graph, test on paired graph (15 pairs)")
+    print("\nUsing 80/20 train/test node split within graphs")
     
     node_clf_results = {}
     
-    scenarios = [
-        ('Real→Real', real_train, real_test),
-        ('Gen→Gen', gen_train, gen_test),
-        ('Real→Gen', real_train, gen_test),
-        ('Gen→Real', gen_train, real_test)
-    ]
+    # Import transforms for node splitting
+    from torch_geometric.transforms import RandomNodeSplit
     
-    for name, train_data, test_data in scenarios:
-        print(f"\n--- {name} ---")
+    # ========== Scenario 1 & 2: Real→Real and Gen→Gen ==========
+    # Train/test on same graph using node masks
+    
+    for scenario_name, graphs in [('Real→Real', real_graphs), ('Gen→Gen', gen_graphs)]:
+        print(f"\n--- {scenario_name} ---")
+        print(f"Training on {len(graphs)} graphs with within-graph node splits")
         
-        # Create loaders
-        train_loader = PyGDataLoader(train_data, batch_size=args.batch_size, shuffle=True)
+        test_accuracies = []
         
-        # Create model
-        model = NodeClassifier(feat_dim, args.hidden_dim, num_classes, args.dropout).to(device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-        
-        # Train
-        best_train_acc = 0
-        patience = 20
-        patience_counter = 0
-        
-        for epoch in range(1, args.node_clf_epochs + 1):
-            train_loss, train_acc = train_node_classifier(model, train_loader, optimizer, device)
+        for graph_idx, graph in enumerate(graphs):
+            # Create train/test node split
+            transform = RandomNodeSplit(split='train_rest', num_val=0.0, num_test=0.2)
+            graph = transform(graph)
             
-            if epoch % 20 == 0 or epoch == 1:
-                print(f"  Epoch {epoch:03d} | Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f}")
+            # Create model for this graph
+            model = NodeClassifier(feat_dim, args.hidden_dim, num_classes, args.dropout).to(device)
+            optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
             
-            if train_acc > best_train_acc:
-                best_train_acc = train_acc
-                patience_counter = 0
-                # Save best model
-                torch.save(model.state_dict(), 
-                          os.path.join(args.output_dir, f'node_clf_{name.replace("→", "_")}.pth'))
-            else:
-                patience_counter += 1
+            graph = graph.to(device)
             
-            if patience_counter >= patience:
-                print(f"  Early stopping at epoch {epoch}")
-                break
+            # Training loop
+            best_test_acc = 0
+            for epoch in range(args.node_clf_epochs):
+                model.train()
+                optimizer.zero_grad()
+                
+                out = model(graph.x, graph.edge_index)
+                loss = F.nll_loss(out[graph.train_mask], graph.y[graph.train_mask])
+                loss.backward()
+                optimizer.step()
+                
+                # Evaluate on test nodes
+                model.eval()
+                with torch.no_grad():
+                    out = model(graph.x, graph.edge_index)
+                    pred = out.argmax(dim=1)
+                    test_acc = (pred[graph.test_mask] == graph.y[graph.test_mask]).float().mean().item()
+                    
+                    if test_acc > best_test_acc:
+                        best_test_acc = test_acc
+            
+            test_accuracies.append(best_test_acc)
+            
+            if (graph_idx + 1) % 5 == 0:
+                print(f"  Completed {graph_idx + 1}/{len(graphs)} graphs")
         
-        # Load best model and evaluate PER GRAPH
-        model.load_state_dict(torch.load(os.path.join(args.output_dir, f'node_clf_{name.replace("→", "_")}.pth')))
+        mean_acc = np.mean(test_accuracies)
+        std_acc = np.std(test_accuracies)
         
-        # Evaluate on each graph individually
-        test_accs, test_f1s = evaluate_node_classifier_per_graph(model, test_data, device)
+        print(f"  Results: {mean_acc:.4f} ± {std_acc:.4f} (over {len(test_accuracies)} graphs)")
         
-        # Compute statistics
-        mean_acc = np.mean(test_accs)
-        std_acc = np.std(test_accs)
-        mean_f1 = np.mean(test_f1s)
-        std_f1 = np.std(test_f1s)
-        
-        print(f"  Test Accuracy: {mean_acc:.4f} ± {std_acc:.4f} (over {len(test_accs)} graphs)")
-        print(f"  Test Macro F1: {mean_f1:.4f} ± {std_f1:.4f}")
-        
-        node_clf_results[name] = {
-            'acc': mean_acc, 
+        node_clf_results[scenario_name] = {
+            'acc': mean_acc,
             'std_acc': std_acc,
-            'f1': mean_f1, 
-            'std_f1': std_f1,
-            'acc_per_graph': test_accs,
-            'f1_per_graph': test_f1s
+            'accuracies': test_accuracies
         }
+    
+    # ========== Scenario 3 & 4: Real→Gen and Gen→Real ==========
+    # Train on all nodes of one graph, test on all nodes of paired graph
+    
+    # Create 15 pairs
+    num_pairs = min(len(real_graphs), len(gen_graphs)) // 2
+    print(f"\n--- Cross-Domain Transfer (Paired Graphs) ---")
+    print(f"Creating {num_pairs} pairs for Real↔Gen evaluation")
+    
+    real2gen_accuracies = []
+    gen2real_accuracies = []
+    
+    for pair_idx in range(num_pairs):
+        real_graph = real_graphs[pair_idx].to(device)
+        gen_graph = gen_graphs[pair_idx].to(device)
+        
+        # Real→Gen: Train on real graph, test on generated graph
+        model_r2g = NodeClassifier(feat_dim, args.hidden_dim, num_classes, args.dropout).to(device)
+        optimizer_r2g = torch.optim.Adam(model_r2g.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        
+        for epoch in range(args.node_clf_epochs):
+            model_r2g.train()
+            optimizer_r2g.zero_grad()
+            
+            out = model_r2g(real_graph.x, real_graph.edge_index)
+            loss = F.nll_loss(out, real_graph.y)
+            loss.backward()
+            optimizer_r2g.step()
+        
+        # Test on generated graph
+        model_r2g.eval()
+        with torch.no_grad():
+            out = model_r2g(gen_graph.x, gen_graph.edge_index)
+            pred = out.argmax(dim=1)
+            r2g_acc = (pred == gen_graph.y).float().mean().item()
+            real2gen_accuracies.append(r2g_acc)
+        
+        # Gen→Real: Train on generated graph, test on real graph
+        model_g2r = NodeClassifier(feat_dim, args.hidden_dim, num_classes, args.dropout).to(device)
+        optimizer_g2r = torch.optim.Adam(model_g2r.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        
+        for epoch in range(args.node_clf_epochs):
+            model_g2r.train()
+            optimizer_g2r.zero_grad()
+            
+            out = model_g2r(gen_graph.x, gen_graph.edge_index)
+            loss = F.nll_loss(out, gen_graph.y)
+            loss.backward()
+            optimizer_g2r.step()
+        
+        # Test on real graph
+        model_g2r.eval()
+        with torch.no_grad():
+            out = model_g2r(real_graph.x, real_graph.edge_index)
+            pred = out.argmax(dim=1)
+            g2r_acc = (pred == real_graph.y).float().mean().item()
+            gen2real_accuracies.append(g2r_acc)
+        
+        if (pair_idx + 1) % 5 == 0:
+            print(f"  Completed {pair_idx + 1}/{num_pairs} pairs")
+    
+    # Store results
+    node_clf_results['Real→Gen'] = {
+        'acc': np.mean(real2gen_accuracies),
+        'std_acc': np.std(real2gen_accuracies),
+        'accuracies': real2gen_accuracies
+    }
+    
+    node_clf_results['Gen→Real'] = {
+        'acc': np.mean(gen2real_accuracies),
+        'std_acc': np.std(gen2real_accuracies),
+        'accuracies': gen2real_accuracies
+    }
+    
+    print(f"\n  Real→Gen: {node_clf_results['Real→Gen']['acc']:.4f} ± {node_clf_results['Real→Gen']['std_acc']:.4f}")
+    print(f"  Gen→Real: {node_clf_results['Gen→Real']['acc']:.4f} ± {node_clf_results['Gen→Real']['std_acc']:.4f}")
     
     # Summary
     print("\n" + "-"*60)
-    print("NODE CLASSIFICATION SUMMARY (PER-GRAPH STATISTICS)")
+    print("NODE CLASSIFICATION SUMMARY")
     print("-"*60)
-    for name, results in node_clf_results.items():
-        print(f"{name:12s}  Acc: {results['acc']:.4f} ± {results['std_acc']:.4f}  " +
-              f"F1: {results['f1']:.4f} ± {results['std_f1']:.4f}")
+    for name in ['Real→Real', 'Gen→Gen', 'Real→Gen', 'Gen→Real']:
+        results = node_clf_results[name]
+        n_runs = len(results['accuracies'])
+        print(f"{name:12s}  Acc: {results['acc']:.4f} ± {results['std_acc']:.4f}  (n={n_runs})")
     print("-"*60)
     
     # Key insights
@@ -490,12 +466,15 @@ def main():
         f.write("CONDITIONAL VGAE DOWNSTREAM EVALUATION\n")
         f.write("="*60 + "\n\n")
         
-        f.write("TASK 1: NODE CLASSIFICATION (PER-GRAPH STATISTICS)\n")
+        f.write("TASK 1: NODE CLASSIFICATION\n")
         f.write("-"*60 + "\n")
-        f.write(f"Evaluated on {len(real_test)} test graphs per scenario\n\n")
-        for name, results in node_clf_results.items():
-            f.write(f"{name:12s}  Acc: {results['acc']:.4f} ± {results['std_acc']:.4f}  " +
-                   f"F1: {results['f1']:.4f} ± {results['std_f1']:.4f}\n")
+        f.write("Setup:\n")
+        f.write("  • Real→Real & Gen→Gen: Within-graph node splits (30 graphs each)\n")
+        f.write("  • Real→Gen & Gen→Real: Paired graphs transfer (15 pairs)\n\n")
+        for name in ['Real→Real', 'Gen→Gen', 'Real→Gen', 'Gen→Real']:
+            results = node_clf_results[name]
+            n_runs = len(results['accuracies'])
+            f.write(f"{name:12s}  Acc: {results['acc']:.4f} ± {results['std_acc']:.4f}  (n={n_runs})\n")
         f.write("\nKey Metrics:\n")
         f.write(f"  Generated Quality: {gen_gen_acc/real_real_acc*100:.1f}% of real\n")
         f.write(f"  Real→Gen Transfer: {real_gen_acc:.4f} ± {node_clf_results['Real→Gen']['std_acc']:.4f}\n")
