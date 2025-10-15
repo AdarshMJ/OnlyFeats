@@ -89,6 +89,13 @@ class ConditionalStructureEncoder(nn.Module):
         # Broadcast homophily to all nodes
         if batch is not None:
             # Multi-graph batch: expand per-graph homophily to per-node
+            # batch.batch[i] gives the graph index for node i
+            # homophily_cond[batch.batch[i]] gives the homophily for that graph
+            if homophily_cond.dim() == 1:
+                # Single value, expand to [1, 3] then broadcast
+                homophily_cond = homophily_cond.unsqueeze(0)
+            # Now homophily_cond is [num_graphs, 3], batch is [num_nodes]
+            # Index to get [num_nodes, 3]
             homophily_cond = homophily_cond[batch]
         else:
             # Single graph: broadcast to all nodes
@@ -881,11 +888,15 @@ def main():
             # batch.x: [total_nodes, feat_dim]
             # batch.edge_index: [2, total_edges]
             # batch.y: [total_nodes]
-            # batch.homophily: [num_graphs, 3]
+            # batch.homophily: [num_graphs * 3] (flattened by PyG)
             # batch.batch: [total_nodes] (graph assignment)
             # batch.num_graphs: number of graphs in batch
             # batch.num_nodes: total nodes in batch
             # batch.num_edges: total edges in batch
+            
+            # Reshape homophily from [num_graphs * 3] to [num_graphs, 3]
+            num_graphs = batch.num_graphs if hasattr(batch, 'num_graphs') else (batch.batch.max().item() + 1)
+            homophily_batch = batch.homophily.view(num_graphs, 3).to(device)
 
             # Build dense adjacency for each graph in batch
             adjs_true = []
@@ -904,13 +915,17 @@ def main():
 
             # Forward pass
             adj_recon, x_recon, y_logits, hom_pred, mu, logvar = model(
-                batch.x, batch.edge_index, batch.homophily.to(device), batch.batch
+                batch.x, batch.edge_index, homophily_batch, batch.batch
             )
 
+            # Split adj_recon by graphs (it's [total_nodes, total_nodes])
+            adjs_recon = []
+            for i in range(len(node_ptr)-1):
+                node_start, node_end = node_ptr[i], node_ptr[i+1]
+                adj_recon_g = adj_recon[node_start:node_end, node_start:node_end]
+                adjs_recon.append(adj_recon_g)
+
             # Compute loss (batched)
-            # For simplicity, use mean over batch
-            # Use only first graph in batch for label_homophily_loss (for now)
-            # TODO: Vectorize label_homophily_loss for batch
             struct_loss = 0
             feat_loss = 0
             label_loss = 0
@@ -923,10 +938,10 @@ def main():
             for i in range(batch_size):
                 loss_i, struct_i, feat_i, label_i, hom_pred_i, label_hom_i, kl_i, density_i = \
                     conditional_student_teacher_loss(
-                        adj_true[i], adj_recon[i],
+                        adj_true[i], adjs_recon[i],
                         batch.x[node_ptr[i]:node_ptr[i+1]], x_recon[node_ptr[i]:node_ptr[i+1]],
                         batch.y[node_ptr[i]:node_ptr[i+1]], y_logits[node_ptr[i]:node_ptr[i+1]],
-                        batch.homophily[i].unsqueeze(0), hom_pred[i].unsqueeze(0),
+                        homophily_batch[i].unsqueeze(0), hom_pred[i].unsqueeze(0),
                         mu[node_ptr[i]:node_ptr[i+1]], logvar[node_ptr[i]:node_ptr[i+1]],
                         lambda_struct=args.lambda_struct,
                         lambda_feat=args.lambda_feat,
@@ -984,6 +999,11 @@ def main():
         with torch.no_grad():
             for batch in val_loader:
                 batch = batch.to(device)
+                
+                # Reshape homophily
+                num_graphs = batch.num_graphs if hasattr(batch, 'num_graphs') else (batch.batch.max().item() + 1)
+                homophily_batch = batch.homophily.view(num_graphs, 3).to(device)
+                
                 node_ptr = batch.ptr.tolist() if hasattr(batch, 'ptr') else None
                 adjs_true = []
                 if node_ptr is None:
@@ -997,8 +1017,15 @@ def main():
                 adj_true = torch.stack(adjs_true)
 
                 adj_recon, x_recon, y_logits, hom_pred, mu, logvar = model(
-                    batch.x, batch.edge_index, batch.homophily.to(device), batch.batch
+                    batch.x, batch.edge_index, homophily_batch, batch.batch
                 )
+
+                # Split adj_recon by graphs
+                adjs_recon = []
+                for i in range(len(node_ptr)-1):
+                    node_start, node_end = node_ptr[i], node_ptr[i+1]
+                    adj_recon_g = adj_recon[node_start:node_end, node_start:node_end]
+                    adjs_recon.append(adj_recon_g)
 
                 struct_loss = 0
                 feat_loss = 0
@@ -1012,10 +1039,10 @@ def main():
                 for i in range(batch_size):
                     loss_i, struct_i, feat_i, label_i, hom_pred_i, label_hom_i, kl_i, density_i = \
                         conditional_student_teacher_loss(
-                            adj_true[i], adj_recon[i],
+                            adj_true[i], adjs_recon[i],
                             batch.x[node_ptr[i]:node_ptr[i+1]], x_recon[node_ptr[i]:node_ptr[i+1]],
                             batch.y[node_ptr[i]:node_ptr[i+1]], y_logits[node_ptr[i]:node_ptr[i+1]],
-                            batch.homophily[i].unsqueeze(0), hom_pred[i].unsqueeze(0),
+                            homophily_batch[i].unsqueeze(0), hom_pred[i].unsqueeze(0),
                             mu[node_ptr[i]:node_ptr[i+1]], logvar[node_ptr[i]:node_ptr[i+1]],
                             lambda_struct=args.lambda_struct,
                             lambda_feat=args.lambda_feat,
