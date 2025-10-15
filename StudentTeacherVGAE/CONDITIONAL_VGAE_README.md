@@ -16,6 +16,11 @@ Generates all three components of a graph:
 - **Features** (node attributes): Teacher decoder (frozen, pretrained) from projected latents
 - **Labels** (node classes): MLP decoder for 3-class classification
 
+**Note**: All generated graphs include node labels (`gen_data.y`), which are:
+- Predicted by the `LabelDecoder` from structure latents
+- Visualized with distinct colors (red/teal/blue for classes 0/1/2)
+- Used for label homophily measurements and constraints
+
 ### 3. Multi-Component Loss Function
 Six loss components ensure high-quality, controllable generation:
 1. **Structure reconstruction** (BCE): Match input adjacency
@@ -171,6 +176,13 @@ Training produces the following files in `--output-dir`:
 
 5. **generation_results.pkl**: Generated graphs with measurements
    - Includes graphs and measured homophily for different targets
+
+6. **gt_vs_gen_*.png**: Visual comparison of GT vs generated graphs
+   - Top row: 5 ground truth graphs from validation set
+   - Bottom row: 5 generated graphs with specified target homophily
+   - Node colors indicate class labels (3 classes)
+   - Includes: number of nodes, edges, and measured homophily values
+   - Generated for each homophily target (low/medium/high feature homophily)
 
 ## Test Results
 
