@@ -1,0 +1,30 @@
+============================================================
+CONDITIONAL VGAE DOWNSTREAM EVALUATION
+============================================================
+
+TASK 1: NODE CLASSIFICATION
+------------------------------------------------------------
+Setup:
+  • Real→Real & Gen→Gen: Within-graph node splits (30 graphs each)
+  • Real→Gen & Gen→Real: Paired graphs transfer (15 pairs)
+
+Real→Real     Acc: 0.8883 ± 0.0573  (n=30)
+Gen→Gen       Acc: 0.6683 ± 0.0821  (n=30)
+Real→Gen      Acc: 0.2667 ± 0.0491  (n=15)
+Gen→Real      Acc: 0.3360 ± 0.1109  (n=15)
+
+Key Metrics:
+  Generated Quality: 75.2% of real
+  Real→Gen Transfer: 0.2667 ± 0.0491
+  Gen→Real Transfer: 0.3360 ± 0.1109
+
+============================================================
+TASK 2: HOMOPHILY MEASUREMENT
+------------------------------------------------------------
+Real Graphs:
+  Label Hom:   0.5783 ± 0.0336
+  Feature Hom: 0.6169 ± 0.0441
+
+Generated Graphs:
+  Label Hom:   0.4523 ± 0.0267
+  Feature Hom: 0.3369 ± 0.0089
