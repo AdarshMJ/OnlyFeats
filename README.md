@@ -28,7 +28,7 @@ python vgae_student_teacher.py \
 
 ```python
 python vgae_conditional.py \
-  --dataset-path data/featurehomophily0.6_graphs.pkl \
+  --dataset-path data/labelhomophily0.6_graphs.pkl \
   --csv-path data/featurehomophily0.6_log.csv \
   --teacher-path outputs_feature_vae/best_model.pth \
   --output-dir outputs_conditional \     
@@ -47,3 +47,18 @@ python vgae_conditional.py \
   --num-generate 5 \
   --seed 42
   ```
+
+#### Downstream verification
+
+```python
+python downstreamconditional.py \
+  --real-graphs-path data/labelhomophily0.6_graphs.pkl \
+  --generated-results-path outputs_conditional_test3/generation_results.pkl \
+  --output-dir outputs_conditional_downstream \
+  --batch-size 32 \
+  --hidden-dim 64 \
+  --node-clf-epochs 100 \
+  --graph-clf-epochs 50 \
+  --lr 0.01 \
+  --seed 42
+```
