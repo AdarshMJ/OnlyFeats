@@ -27,14 +27,14 @@ python vgae_student_teacher.py \
 #### Train to generate structure+features+labels
 
 ```python
-python vgae_conditional.py \
-  --dataset-path data/labelhomophily0.6_graphs.pkl \
+ python vgae_conditional.py \
+  --dataset-path data/featurehomophily0.6_graphs.pkl \
   --csv-path data/featurehomophily0.6_log.csv \
   --teacher-path outputs_feature_vae/best_model.pth \
-  --output-dir outputs_conditional \     
+  --output-dir outputs_conditional_feat_hom_test \
   --epochs 10 \
   --batch-size 32 \
-  --struct-hidden-dims 128 64 \
+  --struct-hidden-dims 32 64 \
   --struct-latent-dim 32 \
   --lr 0.001 \
   --lambda-struct 1.0 \
@@ -42,6 +42,7 @@ python vgae_conditional.py \
   --lambda-label 1.0 \
   --lambda-hom-pred 0.1 \
   --lambda-label-hom 0.5 \
+  --lambda-feat-hom 0.5 \
   --beta 0.05 \
   --eval-interval 1 \
   --num-generate 5 \
