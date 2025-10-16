@@ -437,17 +437,51 @@ def label_homophily_loss(adj_recon, y, num_classes, target_label_hom=0.5):
     return loss
 
 
+def feature_homophily_loss(x_recon, edge_index, target_feat_hom=0.6):
+    """
+    Explicit loss encouraging connected nodes to have similar features.
+    
+    Args:
+        x_recon: Reconstructed features [num_nodes, feat_dim]
+        edge_index: Edge indices [2, num_edges]
+        target_feat_hom: Target feature homophily (default 0.6)
+    
+    Returns:
+        Loss encouraging feature homophily
+    """
+    if edge_index.size(1) == 0:
+        return torch.tensor(0.0, device=x_recon.device)
+    
+    src, dst = edge_index
+    
+    # Normalize features for cosine similarity
+    x_norm = F.normalize(x_recon, p=2, dim=1)
+    
+    # Compute cosine similarity between connected nodes
+    edge_similarities = (x_norm[src] * x_norm[dst]).sum(dim=1)  # [num_edges]
+    
+    # Mean similarity across all edges (actual feature homophily)
+    actual_feat_hom = edge_similarities.mean()
+    
+    # L2 loss: push actual homophily toward target
+    loss = F.mse_loss(actual_feat_hom, torch.tensor(target_feat_hom, device=x_recon.device))
+    
+    return loss
+
+
 def conditional_student_teacher_loss(
     adj_true, adj_recon,
     x_true, x_recon,
     y_true, y_logits,
     homophily_true, homophily_pred,
     mu, logvar,
+    edge_index,  # NEW: needed for feature homophily loss
     lambda_struct=1.0,
     lambda_feat=1.0,
     lambda_label=1.0,
     lambda_hom_pred=0.1,
     lambda_label_hom=0.5,
+    lambda_feat_hom=0.5,  # NEW: weight for feature homophily loss
     beta=0.05,
     lambda_density=0.0,
     num_classes=3
@@ -490,6 +524,11 @@ def conditional_student_teacher_loss(
     target_label_hom = homophily_true[:, 0].mean().item()  # Average across batch
     label_hom_loss = label_homophily_loss(adj_recon, y_true, num_classes, target_label_hom)
     
+    # Explicit feature homophily constraint (NEW!)
+    # Use actual feature homophily from homophily_true
+    target_feat_hom = homophily_true[:, 2].mean().item()  # Feature homophily is 3rd column
+    feat_hom_loss = feature_homophily_loss(x_recon, edge_index, target_feat_hom)
+    
     # KL divergence (regularization)
     kl_loss = -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
     
@@ -509,11 +548,12 @@ def conditional_student_teacher_loss(
         lambda_label * label_loss +
         lambda_hom_pred * hom_pred_loss +
         lambda_label_hom * label_hom_loss +
+        lambda_feat_hom * feat_hom_loss +  # NEW!
         beta * kl_loss +
         lambda_density * density_loss
     )
     
-    return total_loss, struct_loss, feat_loss, label_loss, hom_pred_loss, label_hom_loss, kl_loss, density_loss
+    return total_loss, struct_loss, feat_loss, label_loss, hom_pred_loss, label_hom_loss, feat_hom_loss, kl_loss, density_loss
 
 
 # ========================= Data Loading =========================
@@ -722,6 +762,8 @@ def parse_args():
     parser.add_argument('--lambda-label', type=float, default=1.0)
     parser.add_argument('--lambda-hom-pred', type=float, default=0.1)
     parser.add_argument('--lambda-label-hom', type=float, default=0.5)
+    parser.add_argument('--lambda-feat-hom', type=float, default=0.5,
+                       help='Weight for feature homophily loss (encourages similar features for connected nodes)')
     parser.add_argument('--beta', type=float, default=0.05)
     parser.add_argument('--lambda-density', type=float, default=0.0)
     
@@ -880,7 +922,7 @@ def main():
         train_loss_epoch = 0
         train_metrics = {
             'struct': 0, 'feat': 0, 'label': 0,
-            'hom_pred': 0, 'label_hom': 0, 'kl': 0, 'density': 0
+            'hom_pred': 0, 'label_hom': 0, 'feat_hom': 0, 'kl': 0, 'density': 0
         }
         
         for batch in train_loader:
@@ -931,23 +973,33 @@ def main():
             label_loss = 0
             hom_pred_loss = 0
             label_hom_loss = 0
+            feat_hom_loss = 0  # NEW
             kl_loss = 0
             density_loss = 0
             total_loss = 0
             batch_size = adj_true.size(0)
             for i in range(batch_size):
-                loss_i, struct_i, feat_i, label_i, hom_pred_i, label_hom_i, kl_i, density_i = \
+                # Extract edge_index for this graph
+                mask = (batch.batch == i)
+                graph_edges = batch.edge_index[:, (batch.batch[batch.edge_index[0]] == i)]
+                # Remap to local node indices
+                node_offset = node_ptr[i]
+                graph_edges_local = graph_edges - node_offset
+                
+                loss_i, struct_i, feat_i, label_i, hom_pred_i, label_hom_i, feat_hom_i, kl_i, density_i = \
                     conditional_student_teacher_loss(
                         adj_true[i], adjs_recon[i],
                         batch.x[node_ptr[i]:node_ptr[i+1]], x_recon[node_ptr[i]:node_ptr[i+1]],
                         batch.y[node_ptr[i]:node_ptr[i+1]], y_logits[node_ptr[i]:node_ptr[i+1]],
                         homophily_batch[i].unsqueeze(0), hom_pred[i].unsqueeze(0),
                         mu[node_ptr[i]:node_ptr[i+1]], logvar[node_ptr[i]:node_ptr[i+1]],
+                        graph_edges_local,  # NEW: pass edge_index
                         lambda_struct=args.lambda_struct,
                         lambda_feat=args.lambda_feat,
                         lambda_label=args.lambda_label,
                         lambda_hom_pred=args.lambda_hom_pred,
                         lambda_label_hom=args.lambda_label_hom,
+                        lambda_feat_hom=args.lambda_feat_hom,  # NEW
                         beta=args.beta,
                         lambda_density=args.lambda_density,
                         num_classes=num_classes
@@ -958,6 +1010,7 @@ def main():
                 label_loss += label_i
                 hom_pred_loss += hom_pred_i
                 label_hom_loss += label_hom_i
+                feat_hom_loss += feat_hom_i  # NEW
                 kl_loss += kl_i
                 density_loss += density_i
             total_loss /= batch_size
@@ -966,6 +1019,7 @@ def main():
             label_loss /= batch_size
             hom_pred_loss /= batch_size
             label_hom_loss /= batch_size
+            feat_hom_loss /= batch_size  # NEW
             kl_loss /= batch_size
             density_loss /= batch_size
 
@@ -981,6 +1035,7 @@ def main():
             train_metrics['label'] += label_loss.item()
             train_metrics['hom_pred'] += hom_pred_loss.item()
             train_metrics['label_hom'] += label_hom_loss.item()
+            train_metrics['feat_hom'] += feat_hom_loss.item()  # NEW
             train_metrics['kl'] += kl_loss.item()
             train_metrics['density'] += density_loss.item()
         train_loss_epoch /= len(train_loader)
@@ -992,7 +1047,7 @@ def main():
         val_loss_epoch = 0
         val_metrics = {
             'struct': 0, 'feat': 0, 'label': 0,
-            'hom_pred': 0, 'label_hom': 0, 'kl': 0, 'density': 0
+            'hom_pred': 0, 'label_hom': 0, 'feat_hom': 0, 'kl': 0, 'density': 0
         }
         val_label_acc = 0
         
@@ -1032,23 +1087,31 @@ def main():
                 label_loss = 0
                 hom_pred_loss = 0
                 label_hom_loss = 0
+                feat_hom_loss = 0  # NEW
                 kl_loss = 0
                 density_loss = 0
                 total_loss = 0
                 batch_size = adj_true.size(0)
                 for i in range(batch_size):
-                    loss_i, struct_i, feat_i, label_i, hom_pred_i, label_hom_i, kl_i, density_i = \
+                    # Extract edge_index for this graph
+                    graph_edges = batch.edge_index[:, (batch.batch[batch.edge_index[0]] == i)]
+                    node_offset = node_ptr[i]
+                    graph_edges_local = graph_edges - node_offset
+                    
+                    loss_i, struct_i, feat_i, label_i, hom_pred_i, label_hom_i, feat_hom_i, kl_i, density_i = \
                         conditional_student_teacher_loss(
                             adj_true[i], adjs_recon[i],
                             batch.x[node_ptr[i]:node_ptr[i+1]], x_recon[node_ptr[i]:node_ptr[i+1]],
                             batch.y[node_ptr[i]:node_ptr[i+1]], y_logits[node_ptr[i]:node_ptr[i+1]],
                             homophily_batch[i].unsqueeze(0), hom_pred[i].unsqueeze(0),
                             mu[node_ptr[i]:node_ptr[i+1]], logvar[node_ptr[i]:node_ptr[i+1]],
+                            graph_edges_local,  # NEW
                             lambda_struct=args.lambda_struct,
                             lambda_feat=args.lambda_feat,
                             lambda_label=args.lambda_label,
                             lambda_hom_pred=args.lambda_hom_pred,
                             lambda_label_hom=args.lambda_label_hom,
+                            lambda_feat_hom=args.lambda_feat_hom,  # NEW
                             beta=args.beta,
                             lambda_density=args.lambda_density,
                             num_classes=num_classes
@@ -1059,6 +1122,7 @@ def main():
                     label_loss += label_i
                     hom_pred_loss += hom_pred_i
                     label_hom_loss += label_hom_i
+                    feat_hom_loss += feat_hom_i  # NEW
                     kl_loss += kl_i
                     density_loss += density_i
                     # Label accuracy
@@ -1070,6 +1134,7 @@ def main():
                 label_loss /= batch_size
                 hom_pred_loss /= batch_size
                 label_hom_loss /= batch_size
+                feat_hom_loss /= batch_size  # NEW
                 kl_loss /= batch_size
                 density_loss /= batch_size
                 val_loss_epoch += total_loss.item()
@@ -1078,6 +1143,7 @@ def main():
                 val_metrics['label'] += label_loss.item()
                 val_metrics['hom_pred'] += hom_pred_loss.item()
                 val_metrics['label_hom'] += label_hom_loss.item()
+                val_metrics['feat_hom'] += feat_hom_loss.item()  # NEW
                 val_metrics['kl'] += kl_loss.item()
                 val_metrics['density'] += density_loss.item()
             val_loss_epoch /= len(val_loader)
@@ -1093,9 +1159,11 @@ def main():
             print(f"\nEpoch {epoch}/{args.epochs}")
             print(f"  Train Loss: {train_loss_epoch:.4f} | Val Loss: {val_loss_epoch:.4f}")
             print(f"  Train - Struct: {train_metrics['struct']:.4f}, Feat: {train_metrics['feat']:.4f}, " +
-                  f"Label: {train_metrics['label']:.4f}, Hom: {train_metrics['hom_pred']:.4f}")
+                  f"Label: {train_metrics['label']:.4f}, Hom: {train_metrics['hom_pred']:.4f}, " +
+                  f"LabelHom: {train_metrics['label_hom']:.4f}, FeatHom: {train_metrics['feat_hom']:.4f}")
             print(f"  Val   - Struct: {val_metrics['struct']:.4f}, Feat: {val_metrics['feat']:.4f}, " +
-                  f"Label: {val_metrics['label']:.4f}, Hom: {val_metrics['hom_pred']:.4f}")
+                  f"Label: {val_metrics['label']:.4f}, Hom: {val_metrics['hom_pred']:.4f}, " +
+                  f"LabelHom: {val_metrics['label_hom']:.4f}, FeatHom: {val_metrics['feat_hom']:.4f}")
             print(f"  Val Label Accuracy: {val_label_acc:.4f}")
         
         # Save best model
