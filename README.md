@@ -4,7 +4,7 @@
 #### Train Teacher-FeatureMLP first
 
 ```python
-    python vgae_only_feats.py --epochs 100 --eval-interval 1 --normalize-features --hidden-dims 256 512 --latent-dim 512 --batch-size 512 --beta 0.1
+python vgae_only_feats.py --epochs 100 --eval-interval 1 --normalize-features --hidden-dims 256 512 --latent-dim 512 --batch-size 512 --beta 0.1
 ```
 
 
