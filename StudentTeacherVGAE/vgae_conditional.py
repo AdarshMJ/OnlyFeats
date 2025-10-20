@@ -594,6 +594,140 @@ def load_dataset_with_homophily(graphs_path, csv_path):
     return graphs
 
 
+# ========================= Stratified Batch Sampler =========================
+class StratifiedBatchSampler(torch.utils.data.Sampler):
+    """
+    General-purpose stratified batch sampler for graph datasets.
+    
+    Creates batches with balanced representation from all feature homophily groups.
+    Scales efficiently to datasets of any size (100s to 100,000s of graphs).
+    
+    Key features:
+    - Automatic detection of homophily groups from data
+    - Balanced sampling: each batch has equal samples from each group
+    - Memory efficient: uses iterators, not precomputed batch lists
+    - Handles unbalanced groups: cycles through smaller groups as needed
+    - Flexible: works with any batch size and any number of groups
+    
+    Example:
+        With 5 homophily levels (0.3-0.7) and batch_size=35:
+        → 7 samples per group per batch
+        → Works for 500 graphs or 50,000 graphs per group
+    """
+    def __init__(self, graphs, batch_size, shuffle=True, drop_last=False):
+        """
+        Args:
+            graphs: List of PyG Data objects with .homophily attribute
+            batch_size: Target batch size (rounded to nearest multiple of num_groups)
+            shuffle: Whether to shuffle within groups and batch order
+            drop_last: Whether to drop incomplete batches at the end
+        """
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.drop_last = drop_last
+        
+        # Group graphs by feature homophily (3rd element in homophily vector)
+        self.groups = {}
+        for idx, graph in enumerate(graphs):
+            feat_hom = round(graph.homophily[2].item(), 1)  # Round to 1 decimal place
+            if feat_hom not in self.groups:
+                self.groups[feat_hom] = []
+            self.groups[feat_hom].append(idx)
+        
+        self.num_groups = len(self.groups)
+        self.group_keys = sorted(self.groups.keys())
+        
+        if self.num_groups == 0:
+            raise ValueError("No graphs found with valid homophily values")
+        
+        # Calculate samples per group per batch
+        self.samples_per_group = max(1, batch_size // self.num_groups)
+        self.actual_batch_size = self.samples_per_group * self.num_groups
+        
+        # Calculate total number of batches based on smallest group
+        # This ensures all batches are complete (all groups represented)
+        min_group_size = min(len(indices) for indices in self.groups.values())
+        max_group_size = max(len(indices) for indices in self.groups.values())
+        
+        # Number of complete batches (all groups have samples)
+        self.num_complete_batches = min_group_size // self.samples_per_group
+        
+        # Total batches including partial ones
+        if drop_last:
+            self.num_batches = self.num_complete_batches
+        else:
+            # Continue until largest group is exhausted
+            self.num_batches = (max_group_size + self.samples_per_group - 1) // self.samples_per_group
+        
+        # Calculate total dataset size covered
+        self.total_samples = len(graphs)
+        
+        print(f"\n✓ Stratified Batch Sampler initialized:")
+        print(f"  Total graphs: {self.total_samples}")
+        print(f"  Feature homophily groups: {self.num_groups} groups {self.group_keys}")
+        group_sizes = [len(self.groups[k]) for k in self.group_keys]
+        print(f"  Graphs per group: min={min(group_sizes)}, max={max(group_sizes)}, mean={np.mean(group_sizes):.0f}")
+        print(f"  Target batch size: {batch_size}")
+        print(f"  Actual batch size: {self.actual_batch_size} ({self.samples_per_group} per group × {self.num_groups} groups)")
+        print(f"  Complete batches: {self.num_complete_batches}")
+        print(f"  Total batches: {self.num_batches} (drop_last={drop_last})")
+        
+        if self.actual_batch_size != batch_size:
+            print(f"  ⚠ Note: Batch size adjusted from {batch_size} to {self.actual_batch_size} to evenly divide among {self.num_groups} groups")
+    
+    def __iter__(self):
+        """
+        Generator that yields batches with stratified sampling.
+        
+        For large datasets, this is more memory-efficient than precomputing all batches.
+        """
+        # Shuffle indices within each group if needed
+        group_indices = {}
+        for key in self.group_keys:
+            indices = self.groups[key].copy()
+            if self.shuffle:
+                np.random.shuffle(indices)
+            group_indices[key] = indices
+        
+        # Generate batch indices on-the-fly
+        batch_list = []
+        for batch_idx in range(self.num_batches):
+            batch = []
+            
+            for key in self.group_keys:
+                start_idx = batch_idx * self.samples_per_group
+                end_idx = start_idx + self.samples_per_group
+                
+                group_size = len(group_indices[key])
+                
+                if end_idx <= group_size:
+                    # Normal case: enough samples available
+                    batch.extend(group_indices[key][start_idx:end_idx])
+                elif start_idx < group_size:
+                    # Partial batch: take remaining samples from this group
+                    if not self.drop_last:
+                        batch.extend(group_indices[key][start_idx:])
+                # else: group exhausted, skip (only happens for partial batches)
+            
+            if len(batch) > 0:
+                # Shuffle within batch to mix different groups
+                if self.shuffle:
+                    np.random.shuffle(batch)
+                batch_list.append(batch)
+        
+        # Shuffle batch order if needed (improves training dynamics)
+        if self.shuffle:
+            np.random.shuffle(batch_list)
+        
+        # Yield batches
+        for batch in batch_list:
+            yield batch
+    
+    def __len__(self):
+        """Returns number of batches per epoch."""
+        return self.num_batches
+
+
 # ========================= Homophily Measurement =========================
 def measure_label_homophily(edge_index, y):
     """Fraction of edges connecting same-class nodes."""
@@ -731,6 +865,239 @@ def visualize_gt_vs_generated(gt_graphs, gen_graphs, save_path, num_show=5):
     print(f"✓ Saved GT vs Generated visualization to {save_path}")
 
 
+def visualize_generation_process(model, num_nodes, feat_dim, target_homophily, device, save_path):
+    """
+    Visualize the step-by-step conditional generation process.
+    
+    Shows 6 panels:
+    1. Random prior z_struct in 2D (t-SNE)
+    2. After homophily injection with shift arrows
+    3. Adjacency matrix (binary, final)
+    4. Graph structure visualization
+    5. Graph with node labels colored
+    6. Graph with edges colored by feature similarity
+    
+    Args:
+        model: Trained ConditionalStudentTeacherVGAE
+        num_nodes: Number of nodes to generate
+        feat_dim: Feature dimension
+        target_homophily: [label_hom, struct_hom, feat_hom] e.g., [0.5, 0.5, 0.9]
+        device: Torch device
+        save_path: Path to save the figure
+    """
+    model.eval()
+    
+    with torch.no_grad():
+        # ========== Step 1: Sample random prior ==========
+        z_struct = torch.randn(num_nodes, model.struct_latent_dim, device=device)
+        
+        # ========== Step 2: Compute homophily embedding ==========
+        homophily_cond = torch.tensor(target_homophily, device=device).float()
+        hom_emb = model.homophily_embedding(homophily_cond)
+        hom_emb_expanded = hom_emb.unsqueeze(0).expand(num_nodes, -1)
+        
+        # ========== Step 3: Add conditioning (shift) ==========
+        z_conditioned = z_struct + hom_emb_expanded
+        
+        # ========== Step 4: Generate structure ==========
+        adj = model.struct_decoder(z_conditioned)
+        adj = (adj + adj.t()) / 2  # Symmetric
+        adj = adj * (1 - torch.eye(num_nodes, device=device))  # Remove self-loops
+        
+        # Threshold
+        threshold = torch.quantile(adj[adj > 0], 0.90).item()
+        adj_binary = (adj > threshold).float()
+        adj_binary = (adj_binary + adj_binary.t()) / 2
+        adj_binary = (adj_binary > 0).float()
+        
+        edge_index, _ = dense_to_sparse(adj_binary)
+        
+        # ========== Step 5: Generate labels ==========
+        y_logits = model.label_decoder(z_conditioned)
+        y = y_logits.argmax(dim=1)
+        
+        # ========== Step 6: Generate features ==========
+        z_projected = model.latent_projection(z_conditioned)
+        x = model.teacher_decoder(z_projected)
+        
+        # ========== Dimensionality reduction for visualization ==========
+        # Convert to numpy
+        z_struct_np = z_struct.cpu().numpy()
+        z_conditioned_np = z_conditioned.cpu().numpy()
+        
+        # t-SNE to 2D
+        from sklearn.manifold import TSNE
+        tsne = TSNE(n_components=2, random_state=42, perplexity=min(30, num_nodes-1))
+        
+        # Fit on combined data to have same embedding space
+        z_combined = np.vstack([z_struct_np, z_conditioned_np])
+        z_combined_2d = tsne.fit_transform(z_combined)
+        
+        z_struct_2d = z_combined_2d[:num_nodes]
+        z_conditioned_2d = z_combined_2d[num_nodes:]
+        
+        # ========== Create visualization ==========
+        fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+        colors_labels = ['#FF6B6B', '#4ECDC4', '#45B7D1']  # Red, Teal, Blue
+        
+        # Panel 1: Random prior z_struct
+        ax1 = axes[0, 0]
+        ax1.scatter(z_struct_2d[:, 0], z_struct_2d[:, 1], 
+                   c='gray', alpha=0.6, s=100, edgecolors='black', linewidths=0.5)
+        ax1.set_xlabel('t-SNE Dim 1', fontsize=20)
+        ax1.set_ylabel('t-SNE Dim 2', fontsize=20)
+        ax1.set_title('Step 1: Random Prior z ~ N(0,I)', fontsize=22, fontweight='bold')
+        ax1.tick_params(labelsize=16)
+        ax1.grid(alpha=0.3)
+        
+        # Panel 2: After homophily injection with arrows
+        ax2 = axes[0, 1]
+        # Show before points (faded)
+        ax2.scatter(z_struct_2d[:, 0], z_struct_2d[:, 1], 
+                   c='gray', alpha=0.3, s=120, edgecolors='black', linewidths=0.5, label='Before (random)')
+        # Show after points (bright)
+        ax2.scatter(z_conditioned_2d[:, 0], z_conditioned_2d[:, 1],
+                   c='purple', alpha=0.8, s=120, edgecolors='black', linewidths=0.5, label='After (conditioned)')
+        
+        # Draw LARGER arrows showing the shift (show fewer but make them prominent)
+        arrow_subsample = max(1, num_nodes // 10)  # Show ~10 arrows (fewer but bigger)
+        arrow_scale = 1.5  # Scale factor for arrow size
+        for i in range(0, num_nodes, arrow_subsample):
+            dx = z_conditioned_2d[i, 0] - z_struct_2d[i, 0]
+            dy = z_conditioned_2d[i, 1] - z_struct_2d[i, 1]
+            # Make arrows MUCH more visible
+            ax2.arrow(z_struct_2d[i, 0], z_struct_2d[i, 1],
+                     dx, dy,
+                     head_width=1.2 * arrow_scale,  # Much larger head
+                     head_length=0.8 * arrow_scale,  # Much larger head
+                     fc='darkorange', ec='darkorange',
+                     alpha=0.9, linewidth=3.5, zorder=10)  # Thick lines, high z-order
+        
+        ax2.set_xlabel('t-SNE Dim 1', fontsize=20)
+        ax2.set_ylabel('t-SNE Dim 2', fontsize=20)
+        ax2.set_title(f'Step 2: Homophily Injection\n(Target: L={target_homophily[0]:.1f}, S={target_homophily[1]:.1f}, F={target_homophily[2]:.1f})\nOrange arrows = parallel shift', 
+                     fontsize=20, fontweight='bold')
+        ax2.tick_params(labelsize=16)
+        ax2.grid(alpha=0.3, zorder=0)
+        ax2.legend(fontsize=14, loc='upper right', framealpha=0.9)
+        
+        # Panel 3: Binary adjacency matrix with interpretation
+        ax3 = axes[0, 2]
+        adj_binary_np = adj_binary.cpu().numpy()
+        
+        # Main adjacency plot
+        im = ax3.imshow(adj_binary_np, cmap='Blues', aspect='auto', interpolation='none', vmin=0, vmax=1)
+        ax3.set_xlabel('Node Index', fontsize=20)
+        ax3.set_ylabel('Node Index', fontsize=20)
+        
+        # Calculate statistics
+        num_edges = int(adj_binary_np.sum() / 2)  # Divide by 2 since symmetric
+        density = num_edges / (num_nodes * (num_nodes - 1) / 2)
+        
+        ax3.set_title(f'Step 3: Binary Adjacency Matrix\n({num_edges} edges, density={density:.3f})\nBlue pixels = edges', 
+                     fontsize=20, fontweight='bold')
+        ax3.tick_params(labelsize=16)
+        
+        # Add colorbar with labels
+        cbar = plt.colorbar(im, ax=ax3, fraction=0.046, pad=0.04, ticks=[0, 1])
+        cbar.ax.set_yticklabels(['No Edge\n(0)', 'Edge\n(1)'], fontsize=14)
+        
+        # Add zoomed-in inset to show pattern (top-left 20x20 corner)
+        from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+        zoom_size = min(20, num_nodes)
+        axins = inset_axes(ax3, width="35%", height="35%", loc='lower right',
+                          bbox_to_anchor=(0.05, 0.05, 0.9, 0.9), bbox_transform=ax3.transAxes)
+        axins.imshow(adj_binary_np[:zoom_size, :zoom_size], cmap='Blues', 
+                    aspect='auto', interpolation='none', vmin=0, vmax=1)
+        axins.set_title(f'Zoom: First {zoom_size}×{zoom_size}', fontsize=12, pad=3)
+        axins.set_xticks([])
+        axins.set_yticks([])
+        
+        # Panel 4: Graph structure (NetworkX layout)
+        ax4 = axes[1, 0]
+        G = nx.Graph()
+        G.add_nodes_from(range(num_nodes))
+        edge_list = edge_index.t().cpu().numpy()
+        G.add_edges_from(edge_list)
+        
+        pos = nx.spring_layout(G, seed=42, k=0.5, iterations=50)
+        nx.draw_networkx_nodes(G, pos, node_color='lightblue', 
+                              node_size=150, alpha=0.8, ax=ax4, edgecolors='black', linewidths=0.5)
+        nx.draw_networkx_edges(G, pos, alpha=0.4, width=1.0, ax=ax4)
+        ax4.set_title(f'Step 4: Graph Structure\n({num_nodes} nodes, {edge_index.size(1)} edges)', 
+                     fontsize=22, fontweight='bold')
+        ax4.axis('off')
+        
+        # Panel 5: Graph with node labels colored
+        ax5 = axes[1, 1]
+        y_np = y.cpu().numpy()
+        node_colors = [colors_labels[y_np[node]] for node in G.nodes()]
+        
+        nx.draw_networkx_nodes(G, pos, node_color=node_colors,
+                              node_size=150, alpha=0.8, ax=ax5, edgecolors='black', linewidths=0.5)
+        nx.draw_networkx_edges(G, pos, alpha=0.4, width=1.0, ax=ax5)
+        ax5.set_title('Step 5: Node Labels', fontsize=22, fontweight='bold')
+        ax5.axis('off')
+        
+        # Add legend for labels
+        from matplotlib.patches import Patch
+        legend_elements = [
+            Patch(facecolor=colors_labels[0], label='Class 0', edgecolor='black'),
+            Patch(facecolor=colors_labels[1], label='Class 1', edgecolor='black'),
+            Patch(facecolor=colors_labels[2], label='Class 2', edgecolor='black')
+        ]
+        ax5.legend(handles=legend_elements, loc='upper right', fontsize=14, frameon=True)
+        
+        # Panel 6: Feature homophily (edge colors by similarity)
+        ax6 = axes[1, 2]
+        
+        # Compute feature similarities for edges
+        if edge_index.size(1) > 0:
+            x_norm = F.normalize(x, p=2, dim=1)
+            src, dst = edge_index
+            edge_similarities = (x_norm[src] * x_norm[dst]).sum(dim=1).cpu().numpy()
+            
+            # Draw nodes
+            nx.draw_networkx_nodes(G, pos, node_color='lightgray',
+                                  node_size=150, alpha=0.8, ax=ax6, edgecolors='black', linewidths=0.5)
+            
+            # Draw edges colored by similarity
+            edges = edge_list
+            edge_colors = edge_similarities
+            
+            # Create edge collection with colors
+            from matplotlib.collections import LineCollection
+            edge_segments = np.array([(pos[e[0]], pos[e[1]]) for e in edges])
+            edge_collection = LineCollection(edge_segments, cmap='RdYlGn', 
+                                            linewidths=2, alpha=0.7)
+            edge_collection.set_array(edge_colors)
+            edge_collection.set_clim(vmin=-1, vmax=1)
+            ax6.add_collection(edge_collection)
+            
+            # Colorbar
+            cbar = plt.colorbar(edge_collection, ax=ax6, fraction=0.046, pad=0.04)
+            cbar.set_label('Feature Similarity', fontsize=16)
+            cbar.ax.tick_params(labelsize=14)
+            
+            # Measure actual homophily
+            feat_hom = edge_similarities.mean()
+            ax6.set_title(f'Step 6: Node Features\n(Feature Hom: {feat_hom:.3f})', 
+                         fontsize=22, fontweight='bold')
+        else:
+            nx.draw_networkx_nodes(G, pos, node_color='lightgray',
+                                  node_size=150, alpha=0.8, ax=ax6, edgecolors='black', linewidths=0.5)
+            ax6.set_title('Step 6: Node Features\n(No edges)', fontsize=22, fontweight='bold')
+        
+        ax6.axis('off')
+        ax6.set_xlim(ax4.get_xlim())
+        ax6.set_ylim(ax4.get_ylim())
+        
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"\n✓ Saved generation process visualization to {save_path}")
+
+
 # ========================= Argument Parser =========================
 def parse_args():
     parser = argparse.ArgumentParser(description='Conditional Student-Teacher VGAE')
@@ -851,10 +1218,36 @@ def main():
     print(f"Train: {len(train_graphs)} graphs")
     print(f"Val:   {len(val_graphs)} graphs")
     
-    # Create batched data loaders
+    # Create stratified batched data loaders
     from torch_geometric.loader import DataLoader as PyGDataLoader
-    train_loader = PyGDataLoader(train_graphs, batch_size=args.batch_size, shuffle=True)
-    val_loader = PyGDataLoader(val_graphs, batch_size=args.batch_size, shuffle=False)
+    
+    # Create stratified samplers
+    train_sampler = StratifiedBatchSampler(
+        train_graphs, 
+        batch_size=args.batch_size, 
+        shuffle=True, 
+        drop_last=False
+    )
+    
+    val_sampler = StratifiedBatchSampler(
+        val_graphs,
+        batch_size=args.batch_size,
+        shuffle=False,
+        drop_last=False
+    )
+    
+    # Create DataLoaders with stratified sampling
+    train_loader = PyGDataLoader(
+        train_graphs, 
+        batch_sampler=train_sampler,
+        num_workers=args.num_workers
+    )
+    
+    val_loader = PyGDataLoader(
+        val_graphs,
+        batch_sampler=val_sampler,
+        num_workers=args.num_workers
+    )
     
     # Load teacher model
     print("\n" + "="*60)
@@ -1317,6 +1710,20 @@ def main():
     plt.close()
     print(f"✓ Saved homophily control plot to {args.output_dir}/homophily_control.png")
     
+    # Visualize generation process step-by-step (high feature homophily)
+    print("\n" + "="*60)
+    print("VISUALIZING GENERATION PROCESS")
+    print("="*60)
+    
+    visualize_generation_process(
+        model=model,
+        num_nodes=100,
+        feat_dim=feat_dim,
+        target_homophily=[0.5, 0.5, 0.9],  # High feature homophily
+        device=device,
+        save_path=os.path.join(args.output_dir, 'generation_process.png')
+    )
+    
     print("\n" + "="*60)
     print("TRAINING COMPLETE")
     print("="*60)
@@ -1325,6 +1732,7 @@ def main():
     print(f"  - final_model.pth: Final model checkpoint")
     print(f"  - training_curves.png: Training and validation loss")
     print(f"  - homophily_control.png: Controllable generation results")
+    print(f"  - generation_process.png: Step-by-step generation visualization")
     print(f"  - generation_results.pkl: Generated graphs with measurements")
 
 
