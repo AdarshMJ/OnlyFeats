@@ -1,0 +1,16 @@
+Generated Graph Statistics
+============================================================
+
+Number of graphs: 5
+Nodes per graph: 10000.0
+Edges per graph: 39997932.8
+
+Target Homophily:
+  Label:      0.3000
+  Structural: 0.5000
+  Feature:    0.5000
+
+Measured Homophily (mean ± std):
+  Label:      0.6157 ± 0.0021
+  Structural: 0.3042 ± 0.0004
+  Feature:    0.1631 ± 0.0004
