@@ -519,7 +519,8 @@ def sample_diffusion(model, cond, timesteps, betas, shape):
 # ========================= Generation Function =========================
 def generate_graphs(vgae_model, diffusion_model, num_graphs, num_nodes, 
                     target_homophily, betas, timesteps, device, 
-                    n_max_nodes=100, struct_latent_dim=32, target_density=0.05):
+                    n_max_nodes=100, struct_latent_dim=32, target_density=0.05,
+                    latent_mean=None, latent_std=None):
     """
     Generate graphs using trained VGAE + Diffusion models.
     
@@ -535,6 +536,8 @@ def generate_graphs(vgae_model, diffusion_model, num_graphs, num_nodes,
         n_max_nodes: Maximum nodes (used during training)
         struct_latent_dim: Latent dimension
         target_density: Target edge density
+        latent_mean: Mean for denormalizing latents [1, struct_latent_dim]
+        latent_std: Std for denormalizing latents [1, struct_latent_dim]
     
     Returns:
         List of generated PyG Data objects
@@ -557,7 +560,7 @@ def generate_graphs(vgae_model, diffusion_model, num_graphs, num_nodes,
     # Repeat for batch
     condition_batch = condition.unsqueeze(0).repeat(num_graphs, 1)  # [num_graphs, 18]
     
-    # Sample from diffusion model
+    # Sample from diffusion model (produces normalized latents)
     latent_flat_dim = n_max_nodes * struct_latent_dim
     samples = sample_diffusion(
         diffusion_model,
@@ -567,10 +570,16 @@ def generate_graphs(vgae_model, diffusion_model, num_graphs, num_nodes,
         shape=(num_graphs, latent_flat_dim)
     )
     
-    z_flat = samples[-1]  # [num_graphs, 3200]
+    z_flat_norm = samples[-1]  # [num_graphs, 3200] - NORMALIZED
     
     # Unflatten to node-level latents
-    z_struct = z_flat.view(num_graphs, n_max_nodes, struct_latent_dim)  # [num_graphs, 100, 32]
+    z_struct_norm = z_flat_norm.view(num_graphs, n_max_nodes, struct_latent_dim)  # [num_graphs, 100, 32]
+    
+    # Denormalize latents to original VGAE distribution
+    if latent_mean is not None and latent_std is not None:
+        z_struct = z_struct_norm * latent_std + latent_mean  # Denormalize
+    else:
+        z_struct = z_struct_norm  # No normalization was used
     
     # Truncate to desired number of nodes
     z_struct = z_struct[:, :num_nodes, :]  # [num_graphs, num_nodes, 32]
@@ -1008,6 +1017,36 @@ def main():
     # Latent dimension for diffusion: flattened node latents
     latent_flat_dim = args.n_max_nodes * args.struct_latent_dim  # 100 * 32 = 3200
     
+    # Compute latent statistics for normalization
+    print("\nComputing latent distribution statistics...")
+    all_latents = []
+    with torch.no_grad():
+        for data in train_loader:
+            data = data.to(device)
+            homophily_cond = torch.stack([
+                data.label_homophily,
+                data.structural_homophily,
+                data.feature_homophily
+            ], dim=1)
+            
+            _, _, _, _, mu_enc, _, _ = vgae_model(
+                data.x, data.edge_index, homophily_cond, data.batch
+            )
+            
+            all_latents.append(mu_enc.cpu())
+    
+    all_latents = torch.cat(all_latents, dim=0)
+    latent_mean = all_latents.mean(dim=0, keepdim=True)  # [1, 32]
+    latent_std = all_latents.std(dim=0, keepdim=True) + 1e-8  # [1, 32]
+    
+    print(f"  Latent mean: {latent_mean.mean().item():.6f}")
+    print(f"  Latent std:  {latent_std.mean().item():.6f}")
+    print(f"  Will normalize latents to N(0,1) for diffusion training")
+    
+    # Move to device
+    latent_mean = latent_mean.to(device)
+    latent_std = latent_std.to(device)
+    
     diffusion_model = DenoiseNN(
         latent_dim=latent_flat_dim,
         hidden_dim=args.hidden_dim_diffusion,
@@ -1077,7 +1116,9 @@ def main():
                         elif z_graph.size(0) > args.n_max_nodes:
                             z_graph = z_graph[:args.n_max_nodes]
                         
-                        z_batched.append(z_graph.flatten())  # [3200]
+                        # Normalize latents
+                        z_graph_norm = (z_graph - latent_mean) / latent_std
+                        z_batched.append(z_graph_norm.flatten())  # [3200]
                     
                     z_flat = torch.stack(z_batched, dim=0)  # [batch_size, 3200]
                 
@@ -1145,7 +1186,9 @@ def main():
                         elif z_graph.size(0) > args.n_max_nodes:
                             z_graph = z_graph[:args.n_max_nodes]
                         
-                        z_batched.append(z_graph.flatten())
+                        # Normalize latents
+                        z_graph_norm = (z_graph - latent_mean) / latent_std
+                        z_batched.append(z_graph_norm.flatten())
                     
                     z_flat = torch.stack(z_batched, dim=0)
                     
@@ -1181,7 +1224,9 @@ def main():
                     'model_state_dict': diffusion_model.state_dict(),
                     'optimizer_state_dict': optimizer_diff.state_dict(),
                     'val_loss': val_loss_epoch,
-                    'args': vars(args)
+                    'args': vars(args),
+                    'latent_mean': latent_mean.cpu(),
+                    'latent_std': latent_std.cpu()
                 }, os.path.join(args.output_dir, 'best_diffusion.pth'))
                 print(f"  ✓ Saved best diffusion model (val_loss: {best_val_loss_diff:.4f})")
         
@@ -1200,7 +1245,12 @@ def main():
     checkpoint_diff = torch.load(os.path.join(args.output_dir, 'best_diffusion.pth'), map_location=device)
     diffusion_model.load_state_dict(checkpoint_diff['model_state_dict'])
     diffusion_model.eval()
-    print("\n✓ Loaded best diffusion model")
+    
+    # Load latent normalization stats
+    latent_mean = checkpoint_diff['latent_mean'].to(device)
+    latent_std = checkpoint_diff['latent_std'].to(device)
+    print(f"\n✓ Loaded best diffusion model")
+    print(f"  Latent normalization: mean={latent_mean.mean().item():.6f}, std={latent_std.mean().item():.6f}")
     
     # ============================================================
     # PHASE 3: TEST GENERATION
@@ -1232,7 +1282,9 @@ def main():
             device=device,
             n_max_nodes=args.n_max_nodes,
             struct_latent_dim=args.struct_latent_dim,
-            target_density=args.gen_target_density
+            target_density=args.gen_target_density,
+            latent_mean=latent_mean,
+            latent_std=latent_std
         )
         
         # Measure achieved homophily
