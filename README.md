@@ -75,4 +75,17 @@ python vgae_df.py \
   --train-diffusion
   ```
 
+#### Generate graphs
+
+```python
+python vgae_df.py \
+  --dataset-path data/featurehomophily0.6_graphs.pkl \
+  --teacher-path PureVGAE/outputs_feature_vae/best_model.pth \
+  --output-dir outputs_vgae_df_fixed \
+  --epochs-vgae 100 \
+  --epochs-diffusion 80 \
+  --batch-size 32 \
+  --train-vgae \
+  --train-diffusion
+```
 
