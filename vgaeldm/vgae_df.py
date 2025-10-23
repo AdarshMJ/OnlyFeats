@@ -651,7 +651,7 @@ def generate_graphs(vgae_model, diffusion_model, num_graphs, num_nodes,
             x=x.cpu(),
             edge_index=edge_index.cpu(),
             y=y.cpu(),
-            target_homophily=torch.tensor(target_homophily),
+            target_label_homophily=torch.tensor([target_label_homophily]),
             num_nodes=num_nodes
         ))
     
@@ -687,6 +687,76 @@ def estimate_graph_stats(num_nodes, density):
     return stats
 
 
+def visualize_generated_graphs(graphs, num_to_show=6, save_path=None):
+    """
+    Visualize generated graphs with node colors based on labels.
+    """
+    import networkx as nx
+    from torch_geometric.utils import to_networkx
+    
+    num_to_show = min(num_to_show, len(graphs))
+    
+    cols = min(3, num_to_show)
+    rows = (num_to_show + cols - 1) // cols
+    
+    fig, axes = plt.subplots(rows, cols, figsize=(6*cols, 6*rows))
+    if num_to_show == 1:
+        axes = [axes]
+    else:
+        axes = axes.flatten() if rows > 1 else [axes] if rows == 1 and cols == 1 else axes
+    
+    for idx in range(num_to_show):
+        data = graphs[idx]
+        
+        # Convert to NetworkX
+        G = to_networkx(data, to_undirected=True)
+        
+        # Get node labels and create color map
+        labels = data.y.cpu().numpy()
+        unique_labels = np.unique(labels)
+        
+        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+        node_colors = [colors[labels[node] % len(colors)] for node in G.nodes()]
+        
+        # Layout
+        pos = nx.spring_layout(G, seed=42, k=0.5, iterations=50)
+        
+        ax = axes[idx] if num_to_show > 1 else axes[0]
+        
+        # Draw
+        nx.draw_networkx_nodes(G, pos, node_color=node_colors, 
+                              node_size=100, alpha=0.8, ax=ax)
+        nx.draw_networkx_edges(G, pos, alpha=0.3, width=0.5, ax=ax)
+        
+        # Add info
+        num_nodes = data.num_nodes
+        num_edges = data.edge_index.size(1) // 2
+        density = num_edges / (num_nodes * (num_nodes - 1) / 2) if num_nodes > 1 else 0
+        
+        info_text = f"Graph {idx+1}\n"
+        info_text += f"Nodes: {num_nodes}, Edges: {num_edges}\n"
+        info_text += f"Density: {density:.3f}"
+        
+        ax.text(0.02, 0.98, info_text, transform=ax.transAxes,
+               fontsize=12, verticalalignment='top',
+               bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
+        ax.axis('off')
+    
+    # Hide unused subplots
+    for idx in range(num_to_show, len(axes) if isinstance(axes, np.ndarray) else 1):
+        if isinstance(axes, np.ndarray):
+            axes[idx].axis('off')
+    
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        plt.close()
+    
+    return fig
+
+
 def measure_generated_homophily(graphs):
     """
     Measure actual homophily values for generated graphs.
@@ -703,9 +773,7 @@ def measure_generated_homophily(graphs):
             'label_hom': label_hom,
             'struct_hom': struct_hom,
             'feat_hom': feat_hom,
-            'target_label_hom': data.target_homophily[0].item(),
-            'target_struct_hom': data.target_homophily[1].item(),
-            'target_feat_hom': data.target_homophily[2].item()
+            'target_label_hom': data.target_label_homophily.item() if hasattr(data, 'target_label_homophily') else 0.0
         })
     
     return results
@@ -1300,9 +1368,14 @@ def main():
         print(f"  Target:   label={target_label_hom:.2f}")
         print(f"  Achieved: label={avg_label:.2f}, struct={avg_struct:.2f} (not controlled), feat={avg_feat:.2f} (not controlled)")
         
+        # Visualize generated graphs
+        viz_path = os.path.join(args.output_dir, f'generated_{name}_graphs.png')
+        visualize_generated_graphs(generated, num_to_show=6, save_path=viz_path)
+        print(f"  ✓ Saved graph visualization to {viz_path}")
+        
         all_generated.append({
             'name': name,
-            'target': target_hom,
+            'target': target_label_hom,
             'graphs': generated,
             'results': results
         })
@@ -1338,24 +1411,33 @@ def main():
     # Summary statistics
     summary_path = os.path.join(args.output_dir, 'generation_summary.txt')
     with open(summary_path, 'w') as f:
-        f.write("GENERATION SUMMARY\n")
+        f.write("GENERATION SUMMARY (Simplified: Only Label Homophily Controlled)\n")
         f.write("="*60 + "\n\n")
         
         for gen_data in all_generated:
             f.write(f"Condition: {gen_data['name']}\n")
-            f.write(f"  Target: label={gen_data['target'][0]:.2f}, struct={gen_data['target'][1]:.2f}, feat={gen_data['target'][2]:.2f}\n")
+            f.write(f"  Target label_hom: {gen_data['target']:.2f}\n")
             
             avg_label = np.mean([r['label_hom'] for r in gen_data['results']])
             avg_struct = np.mean([r['struct_hom'] for r in gen_data['results']])
             avg_feat = np.mean([r['feat_hom'] for r in gen_data['results']])
             
-            f.write(f"  Achieved: label={avg_label:.2f}, struct={avg_struct:.2f}, feat={avg_feat:.2f}\n")
+            f.write(f"  Achieved:\n")
+            f.write(f"    label_hom:  {avg_label:.3f} (CONTROLLED)\n")
+            f.write(f"    struct_hom: {avg_struct:.3f} (not controlled)\n")
+            f.write(f"    feat_hom:   {avg_feat:.3f} (not controlled)\n")
             
             std_label = np.std([r['label_hom'] for r in gen_data['results']])
             std_struct = np.std([r['struct_hom'] for r in gen_data['results']])
             std_feat = np.std([r['feat_hom'] for r in gen_data['results']])
             
-            f.write(f"  Std Dev: label={std_label:.3f}, struct={std_struct:.3f}, feat={std_feat:.3f}\n\n")
+            f.write(f"  Std Dev:\n")
+            f.write(f"    label_hom:  {std_label:.3f}\n")
+            f.write(f"    struct_hom: {std_struct:.3f}\n")
+            f.write(f"    feat_hom:   {std_feat:.3f}\n")
+            
+            error = abs(avg_label - gen_data['target'])
+            f.write(f"  Error (label_hom): {error:.3f}\n\n")
     
     print(f"✓ Saved generation_summary.txt")
     
