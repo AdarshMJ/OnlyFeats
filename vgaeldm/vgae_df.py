@@ -247,15 +247,44 @@ def compute_and_cache_graph_stats(graphs, cache_path=None):
     return graphs
 
 
+# ========================= Simplified Homophily Predictor =========================
+class SimplifiedHomophilyPredictor(nn.Module):
+    """
+    Predicts ONLY label homophily from graph-level latent representation.
+    """
+    def __init__(self, latent_dim):
+        super().__init__()
+        
+        self.predictor = nn.Sequential(
+            nn.Linear(latent_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),
+            nn.Sigmoid()  # [0, 1] range
+        )
+    
+    def forward(self, z, batch):
+        """
+        Args:
+            z: Node latents [num_nodes_total, latent_dim]
+            batch: Batch assignment [num_nodes_total]
+        Returns:
+            label_hom_pred: [batch_size, 1]
+        """
+        # Pool to graph-level
+        z_graph = global_mean_pool(z, batch)  # [batch_size, latent_dim]
+        label_hom = self.predictor(z_graph)  # [batch_size, 1]
+        return label_hom
+
+
 # ========================= Conditional Student-Teacher VGAE (Modified) =========================
 class ConditionalStudentTeacherVGAE(nn.Module):
     """
-    Modified VGAE without label_homophily_loss.
+    Simplified VGAE - only conditions on LABEL homophily (not structural/feature).
     Focuses on reconstruction quality; diffusion model handles controllability.
     """
     def __init__(self, feat_dim, struct_hidden_dims, struct_latent_dim,
                  teacher_model, teacher_latent_dim, num_classes,
-                 homophily_dim=3, dropout=0.1, gnn_type='gcn'):
+                 homophily_dim=1, dropout=0.1, gnn_type='gcn'):
         super().__init__()
         
         # Reuse components from vgae_conditional
@@ -274,7 +303,7 @@ class ConditionalStudentTeacherVGAE(nn.Module):
         self.teacher_decoder.eval()
         
         self.latent_projection = LatentProjection(struct_latent_dim, teacher_latent_dim)
-        self.homophily_predictor = HomophilyPredictor(struct_latent_dim)
+        self.homophily_predictor = SimplifiedHomophilyPredictor(struct_latent_dim)  # Only predicts label_hom
         
         self.struct_latent_dim = struct_latent_dim
         self.teacher_latent_dim = teacher_latent_dim
@@ -328,12 +357,13 @@ def conditional_student_teacher_loss_without_label_hom(
     num_classes=3
 ):
     """
-    Modified loss WITHOUT label_homophily_loss to prevent over-conditioning.
+    Simplified loss - only predicts LABEL homophily (not structural/feature).
+    Removed label_homophily_loss and feat_hom_loss to prevent over-conditioning.
     """
-    # Fix homophily_true shape
+    # Fix homophily_true shape (now just 1 value: label_homophily)
     if homophily_true.dim() == 1:
         num_graphs = homophily_pred.size(0)
-        homophily_true = homophily_true.view(num_graphs, 3)
+        homophily_true = homophily_true.view(num_graphs, 1)
     
     # Structure reconstruction
     struct_loss = F.binary_cross_entropy(adj_recon, adj_true, reduction='mean')
@@ -344,33 +374,22 @@ def conditional_student_teacher_loss_without_label_hom(
     # Label prediction
     label_loss = F.cross_entropy(y_logits, y_true, reduction='mean')
     
-    # Homophily prediction
+    # Homophily prediction (only label homophily)
     hom_pred_loss = F.mse_loss(homophily_pred, homophily_true, reduction='mean')
-    
-    # Feature homophily (keep this one)
-    feat_hom_loss = torch.tensor(0.0, device=adj_true.device)
-    if edge_index.size(1) > 0:
-        src, dst = edge_index
-        x_norm = F.normalize(x_recon, p=2, dim=1)
-        edge_similarities = (x_norm[src] * x_norm[dst]).sum(dim=1)
-        actual_feat_hom = edge_similarities.mean()
-        target_feat_hom = homophily_true[:, 2].mean()
-        feat_hom_loss = F.mse_loss(actual_feat_hom, target_feat_hom)
     
     # KL divergence
     kl_loss = -0.5 * torch.mean(1 + logvar_enc - mu_enc.pow(2) - logvar_enc.exp())
     
-    # Total loss (NO lambda_label_hom!)
+    # Total loss (simplified - no feat_hom_loss)
     total_loss = (
         lambda_struct * struct_loss +
         lambda_feat * feat_loss +
         lambda_label * label_loss +
         lambda_hom_pred * hom_pred_loss +
-        lambda_feat_hom * feat_hom_loss +
         beta * kl_loss
     )
     
-    return total_loss, struct_loss, feat_loss, label_loss, hom_pred_loss, feat_hom_loss, kl_loss
+    return total_loss, struct_loss, feat_loss, label_loss, hom_pred_loss, kl_loss
 
 
 # ========================= Diffusion Model Components =========================
@@ -518,7 +537,7 @@ def sample_diffusion(model, cond, timesteps, betas, shape):
 
 # ========================= Generation Function =========================
 def generate_graphs(vgae_model, diffusion_model, num_graphs, num_nodes, 
-                    target_homophily, betas, timesteps, device, 
+                    target_label_homophily, betas, timesteps, device, 
                     n_max_nodes=100, struct_latent_dim=32, target_density=0.05,
                     latent_mean=None, latent_std=None):
     """
@@ -529,7 +548,7 @@ def generate_graphs(vgae_model, diffusion_model, num_graphs, num_nodes,
         diffusion_model: Trained diffusion model
         num_graphs: Number of graphs to generate
         num_nodes: Number of nodes per graph (≤ n_max_nodes)
-        target_homophily: [label_hom, struct_hom, feat_hom]
+        target_label_homophily: Scalar value for desired label homophily [0-1]
         betas: Beta schedule for diffusion
         timesteps: Number of diffusion timesteps
         device: torch device
@@ -551,14 +570,14 @@ def generate_graphs(vgae_model, diffusion_model, num_graphs, num_nodes,
     # Estimate 15 graph statistics based on num_nodes and target_density
     estimated_stats = estimate_graph_stats(num_nodes, target_density)
     
-    # Combine with target homophily: [15 stats + 3 homophily] = 18
+    # Combine with target label homophily: [15 stats + 1 label_hom] = 16
     condition = torch.cat([
         torch.tensor(estimated_stats, dtype=torch.float32, device=device),
-        torch.tensor(target_homophily, dtype=torch.float32, device=device)
-    ])  # [18]
+        torch.tensor([target_label_homophily], dtype=torch.float32, device=device)
+    ])  # [16]
     
     # Repeat for batch
-    condition_batch = condition.unsqueeze(0).repeat(num_graphs, 1)  # [num_graphs, 18]
+    condition_batch = condition.unsqueeze(0).repeat(num_graphs, 1)  # [num_graphs, 16]
     
     # Sample from diffusion model (produces normalized latents)
     latent_flat_dim = n_max_nodes * struct_latent_dim
@@ -733,7 +752,7 @@ def parse_args():
     parser.add_argument('--hidden-dim-diffusion', type=int, default=512)
     parser.add_argument('--n-layers-diffusion', type=int, default=3)
     parser.add_argument('--dim-condition', type=int, default=128)
-    parser.add_argument('--n-stats', type=int, default=18, help='15 graph stats + 3 homophily')
+    parser.add_argument('--n-stats', type=int, default=16, help='15 graph stats + 1 label_homophily')
     
     # Generation & evaluation
     parser.add_argument('--num-generate', type=int, default=100)
@@ -880,12 +899,8 @@ def main():
                 data = data.to(device)
                 optimizer_vgae.zero_grad()
                 
-                # Get homophily condition
-                homophily_cond = torch.stack([
-                    data.label_homophily,
-                    data.structural_homophily,
-                    data.feature_homophily
-                ], dim=1)  # [batch_size, 3]
+                # Get homophily condition (ONLY label homophily)
+                homophily_cond = data.label_homophily.unsqueeze(1)  # [batch_size, 1]
                 
                 # Forward
                 adj_recon, x_recon, y_logits, homophily_pred, mu_enc, logvar_enc, z_struct = vgae_model(
@@ -929,11 +944,8 @@ def main():
                 for data in val_loader:
                     data = data.to(device)
                     
-                    homophily_cond = torch.stack([
-                        data.label_homophily,
-                        data.structural_homophily,
-                        data.feature_homophily
-                    ], dim=1)
+                    # Get homophily condition (ONLY label homophily)
+                    homophily_cond = data.label_homophily.unsqueeze(1)  # [batch_size, 1]
                     
                     adj_recon, x_recon, y_logits, homophily_pred, mu_enc, logvar_enc, z_struct = vgae_model(
                         data.x, data.edge_index, homophily_cond, data.batch
@@ -1023,11 +1035,8 @@ def main():
     with torch.no_grad():
         for data in train_loader:
             data = data.to(device)
-            homophily_cond = torch.stack([
-                data.label_homophily,
-                data.structural_homophily,
-                data.feature_homophily
-            ], dim=1)
+            # Get homophily condition (ONLY label homophily)
+            homophily_cond = data.label_homophily.unsqueeze(1)  # [batch_size, 1]
             
             _, _, _, _, mu_enc, _, _ = vgae_model(
                 data.x, data.edge_index, homophily_cond, data.batch
@@ -1087,11 +1096,8 @@ def main():
                 
                 # Extract latents from frozen VGAE
                 with torch.no_grad():
-                    homophily_cond = torch.stack([
-                        data.label_homophily,
-                        data.structural_homophily,
-                        data.feature_homophily
-                    ], dim=1)
+                    # Get homophily condition (ONLY label homophily)
+                    homophily_cond = data.label_homophily.unsqueeze(1)  # [batch_size, 1]
                     
                     _, _, _, _, mu_enc, _, _ = vgae_model(
                         data.x, data.edge_index, homophily_cond, data.batch
@@ -1122,7 +1128,7 @@ def main():
                     
                     z_flat = torch.stack(z_batched, dim=0)  # [batch_size, 3200]
                 
-                # Prepare conditioning: [15 stats + 3 homophily]
+                # Prepare conditioning: [15 stats + 1 label_homophily] = 16 total
                 # graph_stats is already batched by PyG as [num_graphs, 15] or [batch_size, 15]
                 # If it's flattened, reshape it
                 if data.graph_stats.dim() == 1:
@@ -1130,8 +1136,8 @@ def main():
                 else:
                     graph_stats_batched = data.graph_stats
                 
-                # Concatenate stats and homophily
-                stats_cond = torch.cat([graph_stats_batched, homophily_cond], dim=1)  # [batch_size, 18]
+                # Concatenate stats and label homophily only
+                stats_cond = torch.cat([graph_stats_batched, homophily_cond], dim=1)  # [batch_size, 16]
                 
                 # Diffusion training
                 t = torch.randint(0, args.timesteps, (z_flat.size(0),), device=device).long()
@@ -1159,11 +1165,8 @@ def main():
                 for data in val_loader:
                     data = data.to(device)
                     
-                    homophily_cond = torch.stack([
-                        data.label_homophily,
-                        data.structural_homophily,
-                        data.feature_homophily
-                    ], dim=1)
+                    # Get homophily condition (ONLY label homophily)
+                    homophily_cond = data.label_homophily.unsqueeze(1)  # [batch_size, 1]
                     
                     _, _, _, _, mu_enc, _, _ = vgae_model(
                         data.x, data.edge_index, homophily_cond, data.batch
@@ -1261,22 +1264,22 @@ def main():
     print("="*60)
     
     test_conditions = [
-        ([0.2, 0.5, 0.3], "low_label_hom"),
-        ([0.5, 0.5, 0.6], "medium_hom"),
-        ([0.7, 0.5, 0.9], "high_label_feat_hom"),
+        (0.2, "low_label_hom"),
+        (0.5, "medium_label_hom"),
+        (0.8, "high_label_hom"),
     ]
     
     all_generated = []
     
-    for target_hom, name in test_conditions:
-        print(f"\nGenerating {args.num_generate} graphs with target homophily: {target_hom}")
+    for target_label_hom, name in test_conditions:
+        print(f"\nGenerating {args.num_generate} graphs with target label_homophily: {target_label_hom:.2f}")
         
         generated = generate_graphs(
             vgae_model=vgae_model,
             diffusion_model=diffusion_model,
             num_graphs=args.num_generate,
             num_nodes=args.n_max_nodes,
-            target_homophily=target_hom,
+            target_label_homophily=target_label_hom,
             betas=betas,
             timesteps=args.timesteps,
             device=device,
@@ -1294,8 +1297,8 @@ def main():
         avg_struct = np.mean([r['struct_hom'] for r in results])
         avg_feat = np.mean([r['feat_hom'] for r in results])
         
-        print(f"  Target:   label={target_hom[0]:.2f}, struct={target_hom[1]:.2f}, feat={target_hom[2]:.2f}")
-        print(f"  Achieved: label={avg_label:.2f}, struct={avg_struct:.2f}, feat={avg_feat:.2f}")
+        print(f"  Target:   label={target_label_hom:.2f}")
+        print(f"  Achieved: label={avg_label:.2f}, struct={avg_struct:.2f} (not controlled), feat={avg_feat:.2f} (not controlled)")
         
         all_generated.append({
             'name': name,
