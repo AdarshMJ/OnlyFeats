@@ -203,6 +203,42 @@ def main():
     diff_checkpoint = torch.load(args.diffusion_checkpoint, map_location=device)
     diff_args = diff_checkpoint['args']
     
+    # Load or compute latent normalization stats
+    if 'latent_mean' in diff_checkpoint and 'latent_std' in diff_checkpoint:
+        latent_mean = diff_checkpoint['latent_mean'].to(device)
+        latent_std = diff_checkpoint['latent_std'].to(device)
+        print(f"  Loaded latent normalization: mean={latent_mean.mean().item():.6f}, std={latent_std.mean().item():.6f}")
+    else:
+        print("  ⚠ Old checkpoint without normalization stats, computing from dataset...")
+        # Load dataset and compute stats
+        import pickle
+        dataset_path = args.teacher_path.replace('outputs_feature_vae/best_model.pth', '../data/featurehomophily0.6_graphs.pkl')
+        with open(dataset_path, 'rb') as f:
+            dataset = pickle.load(f)
+        
+        from torch_geometric.loader import DataLoader
+        loader = DataLoader(dataset[:1000], batch_size=32, shuffle=False)  # Use subset for speed
+        
+        all_latents = []
+        with torch.no_grad():
+            for data in loader:
+                data = data.to(device)
+                homophily_cond = torch.stack([
+                    data.label_homophily,
+                    data.structural_homophily,
+                    data.feature_homophily
+                ], dim=1)
+                
+                _, _, _, _, mu_enc, _, _ = vgae_model(
+                    data.x, data.edge_index, homophily_cond, data.batch
+                )
+                all_latents.append(mu_enc.cpu())
+        
+        all_latents = torch.cat(all_latents, dim=0)
+        latent_mean = all_latents.mean(dim=0, keepdim=True).to(device)
+        latent_std = (all_latents.std(dim=0, keepdim=True) + 1e-8).to(device)
+        print(f"  Computed latent normalization: mean={latent_mean.mean().item():.6f}, std={latent_std.mean().item():.6f}")
+    
     # Create diffusion model
     print("\nCreating diffusion model...")
     latent_flat_dim = vgae_args['n_max_nodes'] * vgae_args['struct_latent_dim']
@@ -251,7 +287,9 @@ def main():
         device=device,
         n_max_nodes=vgae_args['n_max_nodes'],
         struct_latent_dim=vgae_args['struct_latent_dim'],
-        target_density=args.target_density
+        target_density=args.target_density,
+        latent_mean=latent_mean,
+        latent_std=latent_std
     )
     
     # Measure achieved homophily
