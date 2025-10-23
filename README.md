@@ -79,11 +79,11 @@ python vgae_df.py \
 
 ```python
 python generate_graphs_vgae_df.py \
-  --vgae-checkpoint outputs_vgae_df/best_vgae.pth \
-  --diffusion-checkpoint outputs_vgae_df/best_diffusion.pth \
+  --vgae-checkpoint outputs_vgae_df_normalized/best_vgae.pth \
+  --diffusion-checkpoint outputs_vgae_df_normalized/best_diffusion.pth \
   --num-graphs 100 \
+  --target-label-hom 0.2 \
   --visualize \
-  --num-viz-graphs 9 \
-  --output properly_trained_graphs.pkl
+  --output properly_normalized.pkl
 ```
 
