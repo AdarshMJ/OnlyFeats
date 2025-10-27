@@ -87,7 +87,7 @@ python generate_graphs_vgae_df.py \
   --output properly_normalized.pkl
 ```
 
-#### Using the hierarchical version
+#### Using the hierarchical version -- autoencoder
 
 ```python
 python main.py --train-autoencoder \
@@ -99,3 +99,14 @@ python main.py --train-autoencoder \
 --epochs-autoencoder 3
 --n-properties 16
 ```
+
+#### Train the denoiser
+```python
+python main.py \
+    --train-denoiser \
+    --use-hierarchical \
+    --homophily-type feature \
+    --data-path ../../Mem2GenVGAE/data/featurehomophily0.6_graphs.pkl \
+    --epochs-denoise 100 \
+    --n-properties 16
+    ```
