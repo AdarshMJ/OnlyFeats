@@ -1,10 +1,5 @@
 # OnlyFeats
 
-
-Number of Autoencoder's trainable parameters: 330284
-27/10/2025 09:54:12 Epoch: 0001, Train Loss: 7725001570986754048.00000 [Label: 1875285.500, Struct: 1.470, Feat: 0.008, Hom: 0.001, KL: 154500031419735080960.000], Val Loss: 1415544667264516096.00000
-
-
 #### Train Teacher-FeatureMLP first
 
 ```python
