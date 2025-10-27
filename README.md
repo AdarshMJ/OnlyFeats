@@ -87,3 +87,15 @@ python generate_graphs_vgae_df.py \
   --output properly_normalized.pkl
 ```
 
+#### Using the hierarchical version
+
+```python
+python main.py --train-autoencoder \
+--use-hierarchical \
+--homophily-type feature \
+--data-path data/featurehomophily0.6_graphs.pkl \
+--teacher-decoder-path best_model.pth \
+--teacher-type feature_vae
+--epochs-autoencoder 3
+--n-properties 16
+```
