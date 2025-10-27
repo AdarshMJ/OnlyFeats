@@ -17,6 +17,7 @@ from torch_geometric.data import Data
 
 import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
+from sklearn.model_selection import train_test_split
 
 from autoencoder import AutoEncoder, VariationalAutoEncoder, HierarchicalVAE
 from denoise_model import DenoiseNN, p_losses, sample, sample_node_level
@@ -405,7 +406,8 @@ def load_or_create_dataset(args, device):
                 # Pad to n_max_nodes
                 size_diff = args.n_max_nodes - num_nodes
                 adj_padded = F.pad(adj, [0, size_diff, 0, size_diff])
-                data.A = adj_padded.unsqueeze(0)
+                # store as 2D adjacency so collated batch has shape [batch, n_max_nodes, n_max_nodes]
+                data.A = adj_padded
         
         print(f"✓ Processed {len(data_lst)} graphs (using {feat_dim}D features directly)")
         return data_lst
@@ -521,7 +523,10 @@ def load_or_create_dataset(args, device):
             
             # Pad adjacency matrix
             adj_padded = F.pad(adj, [0, size_diff, 0, size_diff])
-            adj_padded = adj_padded.unsqueeze(0)
+            # keep as 2D matrix so batch collates to [batch, n_max_nodes, n_max_nodes]
+            # adj_padded originally was unsqueezed which added an extra dim causing
+            # mismatches during loss computation
+            # adj_padded shape: [n_max_nodes, n_max_nodes]
             
             # Load or compute statistics
             fstats = os.path.join(args.stats_dir, filen + ".txt")
@@ -650,8 +655,8 @@ parser.add_argument('--train-teacher-if-missing', action='store_true', default=T
 parser.add_argument('--teacher-epochs', type=int, default=100,
                     help='Epochs for training feature teacher (if auto-training)')
 parser.add_argument('--epochs-autoencoder', type=int, default=200)
-parser.add_argument('--hidden-dim-encoder', type=int, default=64)
-parser.add_argument('--hidden-dim-decoder', type=int, default=256)
+parser.add_argument('--hidden-dim-encoder', type=int, default=32)
+parser.add_argument('--hidden-dim-decoder', type=int, default=64)
 parser.add_argument('--latent-dim', type=int, default=32)
 parser.add_argument('--n-max-nodes', type=int, default=100)
 parser.add_argument('--n-layers-encoder', type=int, default=2)
@@ -698,18 +703,197 @@ print("Loading dataset...")
 print("="*80)
 data_lst = load_or_create_dataset(args, device)
 
-# Split into training, validation and test sets
-idx = np.random.permutation(len(data_lst))
-train_size = int(0.8*idx.size)
-val_size = int(0.1*idx.size)
+# Create stratified split based on label homophily
+print("\nCreating stratified train/val/test split based on label homophily...")
 
-train_idx = [int(i) for i in idx[:train_size]]
-val_idx = [int(i) for i in idx[train_size:train_size + val_size]]
-test_idx = [int(i) for i in idx[train_size + val_size:]]
+# Try to load actual label homophily from CSV if available
+csv_path = os.path.join(os.path.dirname(args.data_path), 'labelhomophilyall_log.csv')
+label_homs = []
+
+if os.path.exists(csv_path):
+    print(f"Loading actual homophily values from {csv_path}")
+    import csv
+    with open(csv_path, 'r') as f:
+        reader = csv.DictReader(f)
+        csv_data = list(reader)
+    
+    # Map graph_idx to actual_label_hom
+    if len(csv_data) == len(data_lst):
+        for row in csv_data:
+            label_homs.append(float(row['actual_label_hom']))
+        print(f"✓ Loaded {len(label_homs)} actual label homophily values from CSV")
+    else:
+        print(f"⚠ Warning: CSV has {len(csv_data)} rows but dataset has {len(data_lst)} graphs")
+        print("  Falling back to extracting from data objects...")
+        label_homs = None
+else:
+    print(f"⚠ CSV not found at {csv_path}")
+    print("  Falling back to extracting from data objects...")
+    label_homs = None
+
+# Fallback: extract from data objects if CSV not available
+if label_homs is None:
+    label_homs = []
+    for data in data_lst:
+        # Try to get from label_homophily attribute first
+        if hasattr(data, 'label_homophily'):
+            label_homs.append(data.label_homophily.item() if isinstance(data.label_homophily, torch.Tensor) else data.label_homophily)
+        # Try to get from stats (last position often contains homophily)
+        elif hasattr(data, 'stats') and data.stats is not None:
+            stats = data.stats.squeeze()
+            if len(stats) > 15:
+                label_homs.append(stats[-1].item() if isinstance(stats, torch.Tensor) else stats[-1])
+            else:
+                label_homs.append(0.5)  # default
+        else:
+            label_homs.append(0.5)  # default
+    print(f"  Extracted {len(label_homs)} homophily values from data objects")
+
+# Create bins for stratification (0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8)
+label_homs = np.array(label_homs)
+
+# Show distribution before binning
+print(f"\nLabel Homophily Statistics:")
+print(f"  Min: {label_homs.min():.4f}")
+print(f"  Max: {label_homs.max():.4f}")
+print(f"  Mean: {label_homs.mean():.4f}")
+print(f"  Median: {np.median(label_homs):.4f}")
+
+# Count how many fall in each target bin
+print(f"\nDistribution by target bins:")
+for level in [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]:
+    count = np.sum((label_homs >= level - 0.05) & (label_homs < level + 0.05))
+    print(f"  {level:.1f} ± 0.05: {count} graphs")
+
+# Use target homophily bins (round to nearest 0.1)
+# This is more robust than using exact ranges
+hom_bins = np.round(label_homs * 10).astype(int)  # Will give 2, 3, 4, 5, 6, 7, 8 for 0.2-0.8
+
+# Check bin distribution and filter out bins with too few samples
+unique_bins, bin_counts = np.unique(hom_bins, return_counts=True)
+print(f"\nBin distribution after rounding:")
+for bin_id, count in zip(unique_bins, bin_counts):
+    print(f"  Bin {bin_id} (≈{bin_id/10:.1f}): {count} graphs")
+
+# If any bin has fewer than 2 samples, we need to merge or handle differently
+min_samples_per_bin = 10  # Need at least 10 samples for meaningful stratification
+small_bins = unique_bins[bin_counts < min_samples_per_bin]
+
+if len(small_bins) > 0:
+    print(f"\n⚠ Warning: Some bins have < {min_samples_per_bin} samples: {small_bins}")
+    print(f"  Merging small bins into nearest larger bins...")
+    
+    # Merge small bins into nearest bins with enough samples
+    for small_bin in small_bins:
+        small_bin_mask = (hom_bins == small_bin)
+        # Find nearest bin with enough samples
+        valid_bins = unique_bins[bin_counts >= min_samples_per_bin]
+        if len(valid_bins) > 0:
+            nearest_bin = valid_bins[np.argmin(np.abs(valid_bins - small_bin))]
+            hom_bins[small_bin_mask] = nearest_bin
+            print(f"    Merged bin {small_bin} → {nearest_bin}")
+    
+    # Recompute bin counts
+    unique_bins, bin_counts = np.unique(hom_bins, return_counts=True)
+    print(f"\nBin distribution after merging:")
+    for bin_id, count in zip(unique_bins, bin_counts):
+        print(f"  Bin {bin_id} (≈{bin_id/10:.1f}): {count} graphs")
+
+# Stratified split
+indices = np.arange(len(data_lst))
+
+# First split: 80% train, 20% temp (which will be split into val and test)
+train_idx, temp_idx = train_test_split(
+    indices, test_size=0.2, stratify=hom_bins, random_state=42
+)
+
+# Second split: split temp into 50% val, 50% test (so 10% and 10% of total)
+temp_hom_bins = hom_bins[temp_idx]
+val_idx, test_idx = train_test_split(
+    temp_idx, test_size=0.5, stratify=temp_hom_bins, random_state=42
+)
+
+train_idx = train_idx.tolist()
+val_idx = val_idx.tolist()
+test_idx = test_idx.tolist()
+
+# Normalize graph statistics using z-score normalization
+print("\n" + "="*80)
+print("Normalizing graph statistics (z-score)...")
+print("="*80)
+
+# Collect all stats from training set to compute mean and std
+train_stats = []
+for idx in train_idx:
+    if hasattr(data_lst[idx], 'stats') and data_lst[idx].stats is not None:
+        stats = data_lst[idx].stats.squeeze()  # Remove batch dimension if present
+        train_stats.append(stats.cpu().numpy() if isinstance(stats, torch.Tensor) else stats)
+
+if len(train_stats) > 0:
+    train_stats = np.array(train_stats)
+    
+    # Compute mean and std from training set only (to prevent data leakage)
+    stats_mean = np.mean(train_stats, axis=0)
+    stats_std = np.std(train_stats, axis=0)
+    
+    # Avoid division by zero for constant features
+    stats_std[stats_std < 1e-6] = 1.0
+    
+    print(f"  Stats shape: {train_stats.shape}")
+    print(f"  Stats mean (first 5): {stats_mean[:5]}")
+    print(f"  Stats std (first 5): {stats_std[:5]}")
+    
+    # Apply z-score normalization to all datasets
+    for idx in range(len(data_lst)):
+        if hasattr(data_lst[idx], 'stats') and data_lst[idx].stats is not None:
+            stats = data_lst[idx].stats.squeeze()
+            if isinstance(stats, torch.Tensor):
+                stats = stats.cpu().numpy()
+            
+            # Z-score normalization
+            stats_normalized = (stats - stats_mean) / stats_std
+            
+            # Convert back to tensor and restore shape
+            data_lst[idx].stats = torch.FloatTensor(stats_normalized).unsqueeze(0)
+    
+    # Store normalization parameters for later use (e.g., during generation)
+    normalization_params = {
+        'stats_mean': stats_mean,
+        'stats_std': stats_std
+    }
+    torch.save(normalization_params, 'stats_normalization.pt')
+    print(f"  ✓ Normalized {len(data_lst)} graphs")
+    print(f"  ✓ Saved normalization parameters to stats_normalization.pt")
+else:
+    print("  ⚠ Warning: No stats found in dataset, skipping normalization")
+
+print("="*80 + "\n")
 
 train_loader = DataLoader([data_lst[i] for i in train_idx], batch_size=args.batch_size, shuffle=True)
 val_loader = DataLoader([data_lst[i] for i in val_idx], batch_size=args.batch_size, shuffle=False)
 test_loader = DataLoader([data_lst[i] for i in test_idx], batch_size=args.batch_size, shuffle=False)
+
+print("\n" + "="*80)
+print("Dataset Statistics:")
+print("="*80)
+print(f"  Total graphs: {len(data_lst)}")
+print(f"  Training set: {len(train_idx)} graphs")
+print(f"  Validation set: {len(val_idx)} graphs")
+print(f"  Test set: {len(test_idx)} graphs")
+print(f"  Batch size: {args.batch_size}")
+print(f"  Training batches per epoch: {len(train_loader)}")
+print(f"  Validation batches per epoch: {len(val_loader)}")
+
+# Check stratification worked
+print("\nLabel Homophily Distribution (stratified split):")
+for split_name, split_idx in [("Train", train_idx), ("Val", val_idx), ("Test", test_idx)]:
+    split_homs = label_homs[split_idx]
+    print(f"  {split_name}:", end=" ")
+    for level in [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]:
+        count = np.sum((split_homs >= level - 0.05) & (split_homs < level + 0.05))
+        print(f"{level:.1f}={count}", end=" ")
+    print()
+print("="*80 + "\n")
 
 # Initialize autoencoder (hierarchical or standard)
 if args.use_hierarchical:
@@ -800,8 +984,17 @@ print("Number of Autoencoder's trainable parameters: "+str(trainable_params_auto
 
 # Train autoencoder
 if args.train_autoencoder:
+    print(f"\n{'='*60}")
+    print(f"Starting Autoencoder Training")
+    print(f"{'='*60}")
+    print(f"Total epochs: {args.epochs_autoencoder}")
+    print(f"Training batches: {len(train_loader)}")
+    print(f"Validation batches: {len(val_loader)}")
+    print(f"{'='*60}\n")
+    
     best_val_loss = np.inf
     for epoch in range(1, args.epochs_autoencoder+1):
+        epoch_start = datetime.now()
         autoencoder.train()
         train_loss_all = 0
         train_count = 0
@@ -817,7 +1010,8 @@ if args.train_autoencoder:
             train_loss_all_recon = 0
             train_loss_all_kld = 0
 
-        for data in train_loader:
+        print(f"[Epoch {epoch}/{args.epochs_autoencoder}] Training phase started...")
+        for batch_idx, data in enumerate(train_loader):
             data = data.to(device)
             optimizer.zero_grad()
             
@@ -842,26 +1036,38 @@ if args.train_autoencoder:
                 )
                 
                 loss = losses['total_loss']
-                train_loss_all += loss.item()
-                train_label_loss += losses['label_loss'].item()
-                train_struct_loss += losses['struct_loss'].item()
-                train_feat_loss += losses['feat_loss'].item()
-                train_hom_loss += losses['hom_loss'].item()
-                train_kl_loss += losses['kl_loss'].item()
+                batch_size = int(data.batch.max().item() + 1)
+                
+                # Accumulate losses weighted by batch size
+                train_loss_all += loss.item() * batch_size
+                train_label_loss += losses['label_loss'].item() * batch_size
+                train_struct_loss += losses['struct_loss'].item() * batch_size
+                train_feat_loss += losses['feat_loss'].item() * batch_size
+                train_hom_loss += losses['hom_loss'].item() * batch_size
+                train_kl_loss += losses['kl_loss'].item() * batch_size
+                train_count += batch_size
                 
             elif args.variational_autoencoder:
                 loss, recon, kld = autoencoder.loss_function(data)
-                train_loss_all_recon += recon.item()
-                train_loss_all_kld += kld.item()
-                train_loss_all += loss.item()
+                batch_size = int(data.batch.max().item() + 1)
+                train_loss_all_recon += recon.item() * batch_size
+                train_loss_all_kld += kld.item() * batch_size
+                train_loss_all += loss.item() * batch_size
+                train_count += batch_size
             else:
                 loss = autoencoder.loss_function(data)
-                train_loss_all += (torch.max(data.batch)+1) * loss.item()
+                batch_size = int(data.batch.max().item() + 1)
+                train_loss_all += loss.item() * batch_size
+                train_count += batch_size
             
             loss.backward()
-            train_count += torch.max(data.batch)+1
             optimizer.step()
+            
+            # Print progress every 10 batches
+            if (batch_idx + 1) % 10 == 0:
+                print(f"  Batch [{batch_idx+1}/{len(train_loader)}] - Loss: {loss.item():.5f}")
 
+        print(f"[Epoch {epoch}/{args.epochs_autoencoder}] Training complete. Starting validation...")
         autoencoder.eval()
         val_loss_all = 0
         val_count = 0
@@ -898,27 +1104,36 @@ if args.train_autoencoder:
                     )
                     
                     loss = losses['total_loss']
-                    val_loss_all += loss.item()
-                    val_label_loss += losses['label_loss'].item()
-                    val_struct_loss += losses['struct_loss'].item()
-                    val_feat_loss += losses['feat_loss'].item()
-                    val_hom_loss += losses['hom_loss'].item()
-                    val_kl_loss += losses['kl_loss'].item()
+                    batch_size = int(data.batch.max().item() + 1)
+                    
+                    val_loss_all += loss.item() * batch_size
+                    val_label_loss += losses['label_loss'].item() * batch_size
+                    val_struct_loss += losses['struct_loss'].item() * batch_size
+                    val_feat_loss += losses['feat_loss'].item() * batch_size
+                    val_hom_loss += losses['hom_loss'].item() * batch_size
+                    val_kl_loss += losses['kl_loss'].item() * batch_size
+                    val_count += batch_size
                     
                 elif args.variational_autoencoder:
                     loss, recon, kld = autoencoder.loss_function(data)
-                    val_loss_all_recon += recon.item()
-                    val_loss_all_kld += kld.item()
-                    val_loss_all += loss.item()
+                    batch_size = int(data.batch.max().item() + 1)
+                    val_loss_all_recon += recon.item() * batch_size
+                    val_loss_all_kld += kld.item() * batch_size
+                    val_loss_all += loss.item() * batch_size
+                    val_count += batch_size
                 else:
                     loss = autoencoder.loss_function(data)
-                    val_loss_all += torch.max(data.batch)+1 * loss.item()
-            
-            val_count += torch.max(data.batch)+1
+                    batch_size = int(data.batch.max().item() + 1)
+                    val_loss_all += loss.item() * batch_size
+                    val_count += batch_size
 
+        epoch_time = (datetime.now() - epoch_start).total_seconds()
+        print(f"[Epoch {epoch}/{args.epochs_autoencoder}] Validation complete. Time: {epoch_time:.1f}s")
+        
         if epoch % 1 == 0:
             dt_t = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             if args.use_hierarchical:
+                print(f"\n{'-'*80}")
                 print('{} Epoch: {:04d}, Train Loss: {:.5f} [Label: {:.3f}, Struct: {:.3f}, Feat: {:.3f}, Hom: {:.3f}, KL: {:.3f}], Val Loss: {:.5f}'.format(
                     dt_t, epoch, 
                     train_loss_all/train_count,
@@ -929,6 +1144,7 @@ if args.train_autoencoder:
                     train_kl_loss/train_count,
                     val_loss_all/val_count
                 ))
+                print(f"{'-'*80}\n")
             elif args.variational_autoencoder:
                 print('{} Epoch: {:04d}, Train Loss: {:.5f}, Train Reconstruction Loss: {:.2f}, Train KLD Loss: {:.2f}, Val Loss: {:.5f}, Val Reconstruction Loss: {:.2f}, Val KLD Loss: {:.2f}'.format(
                     dt_t, epoch, 
@@ -954,7 +1170,14 @@ if args.train_autoencoder:
                 'state_dict': autoencoder.state_dict(),
                 'optimizer' : optimizer.state_dict(),
             }, 'autoencoder.pth.tar')
-            print(f"✓ Saved best autoencoder checkpoint (val_loss={val_loss_all/val_count:.5f})")
+            print(f"✓ Saved best autoencoder checkpoint (val_loss={val_loss_all/val_count:.5f}) [NEW BEST!]")
+        else:
+            print(f"  Val loss ({val_loss_all/val_count:.5f}) did not improve from best ({best_val_loss/val_count:.5f})")
+    
+    print(f"\n{'='*60}")
+    print(f"Autoencoder Training Complete!")
+    print(f"Best validation loss: {best_val_loss/val_count:.5f}")
+    print(f"{'='*60}\n")
 else:
     # Load pretrained autoencoder
     if os.path.exists('autoencoder.pth.tar'):
@@ -968,7 +1191,12 @@ else:
         print("  Continuing with randomly initialized weights...")
 
 autoencoder.eval()
-print("\nEvaluating autoencoder on test set...")
+print("\n" + "="*80)
+print("Evaluating Autoencoder Performance")
+print("="*80)
+print(f"Test set size: {len(test_loader)} batches")
+print("Computing graph similarity metrics (Weisfeiler-Lehman kernel)...")
+print("="*80 + "\n")
 eval_autoencoder(test_loader, autoencoder, args.n_max_nodes, device)
 
 
@@ -1024,13 +1252,23 @@ print("Number of Diffusion model's trainable parameters: "+str(trainable_params_
 
 if args.train_denoiser:
     # Train denoising model
+    print(f"\n{'='*60}")
+    print(f"Starting Diffusion Model Training")
+    print(f"{'='*60}")
+    print(f"Total epochs: {args.epochs_denoise}")
+    print(f"Training batches: {len(train_loader)}")
+    print(f"Validation batches: {len(val_loader)}")
+    print(f"{'='*60}\n")
+    
     best_val_loss = np.inf
     for epoch in range(1, args.epochs_denoise+1):
+        epoch_start = datetime.now()
         denoise_model.train()
         train_loss_all = 0
         train_count = 0
         
-        for data in train_loader:
+        print(f"[Epoch {epoch}/{args.epochs_denoise}] Training phase started...")
+        for batch_idx, data in enumerate(train_loader):
             data = data.to(device)
             optimizer.zero_grad()
             
@@ -1065,7 +1303,12 @@ if args.train_denoiser:
             
             loss.backward()
             optimizer.step()
+            
+            # Print progress every 10 batches
+            if (batch_idx + 1) % 10 == 0:
+                print(f"  Batch [{batch_idx+1}/{len(train_loader)}] - Loss: {loss.item():.5f}")
 
+        print(f"[Epoch {epoch}/{args.epochs_denoise}] Training complete. Starting validation...")
         denoise_model.eval()
         val_loss_all = 0
         val_count = 0
@@ -1095,11 +1338,16 @@ if args.train_denoiser:
                     val_loss_all += x_g.size(0) * loss.item()
                     val_count += x_g.size(0)
 
+        epoch_time = (datetime.now() - epoch_start).total_seconds()
+        print(f"[Epoch {epoch}/{args.epochs_denoise}] Validation complete. Time: {epoch_time:.1f}s")
+        
         if epoch % 5 == 0:
             dt_t = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            print(f"\n{'-'*80}")
             print('{} Epoch: {:04d}, Train Loss: {:.5f}, Val Loss: {:.5f}'.format(
                 dt_t, epoch, train_loss_all/train_count, val_loss_all/val_count
             ))
+            print(f"{'-'*80}\n")
 
         scheduler.step()
 
@@ -1109,7 +1357,14 @@ if args.train_denoiser:
                 'state_dict': denoise_model.state_dict(),
                 'optimizer' : optimizer.state_dict(),
             }, 'denoise_model.pth.tar')
-            print(f"✓ Saved best diffusion model checkpoint (val_loss={val_loss_all/val_count:.5f})")
+            print(f"✓ Saved best diffusion model checkpoint (val_loss={val_loss_all/val_count:.5f}) [NEW BEST!]")
+        else:
+            print(f"  Val loss ({val_loss_all/val_count:.5f}) did not improve from best ({best_val_loss/val_count:.5f})")
+    
+    print(f"\n{'='*60}")
+    print(f"Diffusion Model Training Complete!")
+    print(f"Best validation loss: {best_val_loss/val_count:.5f}")
+    print(f"{'='*60}\n")
 else:
     # Load pretrained diffusion model
     if os.path.exists('denoise_model.pth.tar'):
@@ -1126,6 +1381,13 @@ denoise_model.eval()
 
 del train_loader, val_loader
 
+print("\n" + "="*80)
+print("Starting Test Phase: Generating Graphs via Diffusion")
+print("="*80)
+print(f"  Test set size: {len(test_loader)} batches")
+print(f"  Diffusion timesteps: {args.timesteps}")
+print(f"  Latent dimension: {args.latent_dim}")
+print("="*80 + "\n")
 
 ground_truth = []
 pred = []
@@ -1153,13 +1415,19 @@ for k, data in enumerate(tqdm(test_loader, desc='Processing test set',)):
 
 store_stats(ground_truth, pred, "y_stats.txt", "y_pred_stats.txt")
 
+print("\n" + "="*80)
+print("Test Phase Complete!")
+print("="*80)
+print(f"  Generated {len(pred)} graphs")
+print(f"  Statistics saved to: y_stats.txt (ground truth) and y_pred_stats.txt (generated)")
+print("="*80 + "\n")
 # stats = torch.cat(stats, dim=0).detach().cpu().numpy()
 
 
 mean, std = calculate_mean_std(ground_truth)
 
 
-mse, mae, norm_error = evaluation_metrics(ground_truth, y_pred)
+mse, mae, norm_error = evaluation_metrics(ground_truth, pred)
 
 
 mse_all, mae_all, norm_error_all, mean_perc_error_all = z_score_norm(ground_truth, pred, mean, std)
