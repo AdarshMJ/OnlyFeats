@@ -95,8 +95,8 @@ python main.py --train-autoencoder \
 --homophily-type feature \
 --data-path data/featurehomophily0.6_graphs.pkl \
 --teacher-decoder-path best_model.pth \
---teacher-type feature_vae
---epochs-autoencoder 3
+--teacher-type feature_vae \
+--epochs-autoencoder 3 \
 --n-properties 16
 ```
 
