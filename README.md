@@ -106,7 +106,7 @@ python main.py \
     --train-denoiser \
     --use-hierarchical \
     --homophily-type feature \
-    --data-path ../../Mem2GenVGAE/data/featurehomophily0.6_graphs.pkl \
+    --data-path data/featurehomophily0.6_graphs.pkl \
     --epochs-denoise 100 \
     --n-properties 16
-    ```
+```
