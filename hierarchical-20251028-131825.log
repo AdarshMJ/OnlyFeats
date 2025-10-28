@@ -1,0 +1,254 @@
+2025-10-28 13:18:25,559 - INFO - Logging to logs/hierarchical-20251028-131825.log
+2025-10-28 13:18:25,559 - INFO - Arguments: {
+  "lr": 0.001,
+  "dropout": 0.0,
+  "batch_size": 32,
+  "data_path": "data/labelhomophilyall_graphs.pkl",
+  "graphs_dir": "generated data/graphs",
+  "stats_dir": "generated data/stats",
+  "use_cached_stats": true,
+  "recompute_stats": false,
+  "teacher_decoder_path": "teacherfeature/best_model.pth",
+  "teacher_type": "feature_vae",
+  "train_teacher_if_missing": true,
+  "teacher_epochs": 100,
+  "epochs_autoencoder": 100,
+  "hidden_dim_encoder": 32,
+  "hidden_dim_decoder": 64,
+  "latent_dim": 32,
+  "n_max_nodes": 100,
+  "n_layers_encoder": 2,
+  "n_layers_decoder": 3,
+  "spectral_emb_dim": 10,
+  "variational_autoencoder": true,
+  "epochs_denoise": 100,
+  "timesteps": 500,
+  "hidden_dim_denoise": 512,
+  "n_layers_denoise": 3,
+  "train_autoencoder": false,
+  "train_denoiser": true,
+  "early_stop_patience_autoencoder": 20,
+  "early_stop_patience_denoiser": 20,
+  "n_properties": 16,
+  "dim_condition": 128,
+  "homophily_type": "label",
+  "use_hierarchical": true,
+  "num_classes": 3,
+  "feat_dim": 32,
+  "teacher_latent_dim": 512,
+  "lambda_label": 1.0,
+  "lambda_struct": 1.0,
+  "lambda_feat": 0.5,
+  "lambda_hom": 2.0
+}
+2025-10-28 13:18:32,053 - INFO - Loaded dataset with 7000 graphs using data path data/labelhomophilyall_graphs.pkl
+2025-10-28 13:18:32,264 - INFO - Dataset split sizes - train: 5600, val: 700, test: 700, batch size: 32
+2025-10-28 13:18:33,251 - INFO - Teacher decoder loaded from teacherfeature/best_model.pth
+2025-10-28 13:18:33,272 - INFO - Loaded autoencoder checkpoint from autoencoder.pth.tar
+2025-10-28 13:18:33,272 - INFO - Evaluating autoencoder on 22 test batches
+2025-10-28 13:18:38,474 - INFO - Average WL similarity: 0.451985 computed over 700 graph pairs (skipped 0)
+2025-10-28 13:18:38,489 - INFO - Starting diffusion training for 100 epochs (175 train batches, 22 val batches)
+2025-10-28 13:18:40,762 - INFO - Saved best diffusion checkpoint at epoch 0001 with val_loss=0.05286
+2025-10-28 13:18:42,974 - INFO - Saved best diffusion checkpoint at epoch 0002 with val_loss=0.03747
+2025-10-28 13:18:45,153 - INFO - Saved best diffusion checkpoint at epoch 0003 with val_loss=0.02732
+2025-10-28 13:18:47,377 - INFO - Saved best diffusion checkpoint at epoch 0004 with val_loss=0.02155
+2025-10-28 13:18:49,555 - INFO - 28/10/2025 13:18:49 Denoiser Epoch: 0005, Train Loss: 0.02059, Val Loss: 0.00907
+2025-10-28 13:18:49,610 - INFO - Saved best diffusion checkpoint at epoch 0005 with val_loss=0.00907
+2025-10-28 13:18:51,809 - INFO - Diffusion validation loss 0.02805 did not improve on best 0.00907
+2025-10-28 13:18:54,037 - INFO - Diffusion validation loss 0.01279 did not improve on best 0.00907
+2025-10-28 13:18:56,258 - INFO - Diffusion validation loss 0.01922 did not improve on best 0.00907
+2025-10-28 13:18:58,479 - INFO - Diffusion validation loss 0.02041 did not improve on best 0.00907
+2025-10-28 13:19:00,618 - INFO - 28/10/2025 13:19:00 Denoiser Epoch: 0010, Train Loss: 0.01106, Val Loss: 0.01429
+2025-10-28 13:19:00,619 - INFO - Diffusion validation loss 0.01429 did not improve on best 0.00907
+2025-10-28 13:19:02,807 - INFO - Diffusion validation loss 0.01953 did not improve on best 0.00907
+2025-10-28 13:19:05,011 - INFO - Diffusion validation loss 0.03191 did not improve on best 0.00907
+2025-10-28 13:19:07,201 - INFO - Diffusion validation loss 0.01822 did not improve on best 0.00907
+2025-10-28 13:19:09,384 - INFO - Diffusion validation loss 0.02955 did not improve on best 0.00907
+2025-10-28 13:19:11,593 - INFO - 28/10/2025 13:19:11 Denoiser Epoch: 0015, Train Loss: 0.01833, Val Loss: 0.01745
+2025-10-28 13:19:11,593 - INFO - Diffusion validation loss 0.01745 did not improve on best 0.00907
+2025-10-28 13:19:13,787 - INFO - Diffusion validation loss 0.03001 did not improve on best 0.00907
+2025-10-28 13:19:16,016 - INFO - Diffusion validation loss 0.01361 did not improve on best 0.00907
+2025-10-28 13:19:18,246 - INFO - Diffusion validation loss 0.01254 did not improve on best 0.00907
+2025-10-28 13:19:20,455 - INFO - Diffusion validation loss 0.00948 did not improve on best 0.00907
+2025-10-28 13:19:22,686 - INFO - 28/10/2025 13:19:22 Denoiser Epoch: 0020, Train Loss: 0.01538, Val Loss: 0.02117
+2025-10-28 13:19:22,686 - INFO - Diffusion validation loss 0.02117 did not improve on best 0.00907
+2025-10-28 13:19:24,939 - INFO - Saved best diffusion checkpoint at epoch 0021 with val_loss=0.00905
+2025-10-28 13:19:27,124 - INFO - Diffusion validation loss 0.01256 did not improve on best 0.00905
+2025-10-28 13:19:29,322 - INFO - Diffusion validation loss 0.01108 did not improve on best 0.00905
+2025-10-28 13:19:31,496 - INFO - Diffusion validation loss 0.01056 did not improve on best 0.00905
+2025-10-28 13:19:33,658 - INFO - 28/10/2025 13:19:33 Denoiser Epoch: 0025, Train Loss: 0.01648, Val Loss: 0.00939
+2025-10-28 13:19:33,658 - INFO - Diffusion validation loss 0.00939 did not improve on best 0.00905
+2025-10-28 13:19:35,840 - INFO - Diffusion validation loss 0.04782 did not improve on best 0.00905
+2025-10-28 13:19:38,049 - INFO - Diffusion validation loss 0.02074 did not improve on best 0.00905
+2025-10-28 13:19:40,240 - INFO - Diffusion validation loss 0.03198 did not improve on best 0.00905
+2025-10-28 13:19:42,476 - INFO - Diffusion validation loss 0.04018 did not improve on best 0.00905
+2025-10-28 13:19:44,679 - INFO - 28/10/2025 13:19:44 Denoiser Epoch: 0030, Train Loss: 0.01510, Val Loss: 0.00971
+2025-10-28 13:19:44,679 - INFO - Diffusion validation loss 0.00971 did not improve on best 0.00905
+2025-10-28 13:19:46,925 - INFO - Diffusion validation loss 0.01315 did not improve on best 0.00905
+2025-10-28 13:19:49,154 - INFO - Diffusion validation loss 0.01034 did not improve on best 0.00905
+2025-10-28 13:19:51,364 - INFO - Diffusion validation loss 0.01224 did not improve on best 0.00905
+2025-10-28 13:19:53,552 - INFO - Diffusion validation loss 0.01939 did not improve on best 0.00905
+2025-10-28 13:19:55,744 - INFO - 28/10/2025 13:19:55 Denoiser Epoch: 0035, Train Loss: 0.01934, Val Loss: 0.00922
+2025-10-28 13:19:55,744 - INFO - Diffusion validation loss 0.00922 did not improve on best 0.00905
+2025-10-28 13:19:57,951 - INFO - Diffusion validation loss 0.01011 did not improve on best 0.00905
+2025-10-28 13:20:00,077 - INFO - Diffusion validation loss 0.01334 did not improve on best 0.00905
+2025-10-28 13:20:02,254 - INFO - Diffusion validation loss 0.00956 did not improve on best 0.00905
+2025-10-28 13:20:04,424 - INFO - Diffusion validation loss 0.01013 did not improve on best 0.00905
+2025-10-28 13:20:06,605 - INFO - 28/10/2025 13:20:06 Denoiser Epoch: 0040, Train Loss: 0.01858, Val Loss: 0.01278
+2025-10-28 13:20:06,605 - INFO - Diffusion validation loss 0.01278 did not improve on best 0.00905
+2025-10-28 13:20:08,819 - INFO - Diffusion validation loss 0.02425 did not improve on best 0.00905
+2025-10-28 13:20:08,820 - INFO - Diffusion model early stopping triggered after 20 epochs without improvement
+2025-10-28 13:20:08,820 - INFO - Diffusion training stopped early. Best validation loss: 0.00905
+2025-10-28 13:20:08,821 - INFO - Starting diffusion sampling on 22 test batches (timesteps=500, latent_dim=32)
+2025-10-28 13:20:09,444 - WARNING - Skipping generated graph stats for batch 0 graph 0 due to empty graph
+2025-10-28 13:20:09,907 - WARNING - Skipping generated graph stats for batch 0 graph 1 due to empty graph
+2025-10-28 13:20:10,338 - WARNING - Skipping generated graph stats for batch 0 graph 2 due to empty graph
+2025-10-28 13:20:10,769 - WARNING - Skipping generated graph stats for batch 0 graph 3 due to empty graph
+2025-10-28 13:20:11,204 - WARNING - Skipping generated graph stats for batch 0 graph 4 due to empty graph
+2025-10-28 13:20:11,634 - WARNING - Skipping generated graph stats for batch 0 graph 5 due to empty graph
+2025-10-28 13:20:12,065 - WARNING - Skipping generated graph stats for batch 0 graph 6 due to empty graph
+2025-10-28 13:20:12,493 - WARNING - Skipping generated graph stats for batch 0 graph 7 due to empty graph
+2025-10-28 13:20:12,925 - WARNING - Skipping generated graph stats for batch 0 graph 8 due to empty graph
+2025-10-28 13:20:13,356 - WARNING - Skipping generated graph stats for batch 0 graph 9 due to empty graph
+2025-10-28 13:20:13,788 - WARNING - Skipping generated graph stats for batch 0 graph 10 due to empty graph
+2025-10-28 13:20:14,235 - WARNING - Skipping generated graph stats for batch 0 graph 11 due to empty graph
+2025-10-28 13:20:14,700 - WARNING - Skipping generated graph stats for batch 0 graph 12 due to empty graph
+2025-10-28 13:20:15,150 - WARNING - Skipping generated graph stats for batch 0 graph 13 due to empty graph
+2025-10-28 13:20:15,580 - WARNING - Skipping generated graph stats for batch 0 graph 14 due to empty graph
+2025-10-28 13:20:16,011 - WARNING - Skipping generated graph stats for batch 0 graph 15 due to empty graph
+2025-10-28 13:20:16,443 - WARNING - Skipping generated graph stats for batch 0 graph 16 due to empty graph
+2025-10-28 13:20:16,874 - WARNING - Skipping generated graph stats for batch 0 graph 17 due to empty graph
+2025-10-28 13:20:17,305 - WARNING - Skipping generated graph stats for batch 0 graph 18 due to empty graph
+2025-10-28 13:20:17,736 - WARNING - Skipping generated graph stats for batch 0 graph 19 due to empty graph
+2025-10-28 13:20:18,167 - WARNING - Skipping generated graph stats for batch 0 graph 20 due to empty graph
+2025-10-28 13:20:18,597 - WARNING - Skipping generated graph stats for batch 0 graph 21 due to empty graph
+2025-10-28 13:20:19,032 - WARNING - Skipping generated graph stats for batch 0 graph 22 due to empty graph
+2025-10-28 13:20:19,463 - WARNING - Skipping generated graph stats for batch 0 graph 23 due to empty graph
+2025-10-28 13:20:19,895 - WARNING - Skipping generated graph stats for batch 0 graph 24 due to empty graph
+2025-10-28 13:20:20,325 - WARNING - Skipping generated graph stats for batch 0 graph 25 due to empty graph
+2025-10-28 13:20:20,757 - WARNING - Skipping generated graph stats for batch 0 graph 26 due to empty graph
+2025-10-28 13:20:21,186 - WARNING - Skipping generated graph stats for batch 0 graph 27 due to empty graph
+2025-10-28 13:20:21,617 - WARNING - Skipping generated graph stats for batch 0 graph 28 due to empty graph
+2025-10-28 13:20:22,048 - WARNING - Skipping generated graph stats for batch 0 graph 29 due to empty graph
+2025-10-28 13:20:22,478 - WARNING - Skipping generated graph stats for batch 0 graph 30 due to empty graph
+2025-10-28 13:20:22,910 - WARNING - Skipping generated graph stats for batch 0 graph 31 due to empty graph
+2025-10-28 13:20:23,342 - WARNING - Skipping generated graph stats for batch 1 graph 0 due to empty graph
+2025-10-28 13:20:23,766 - WARNING - Skipping generated graph stats for batch 1 graph 1 due to empty graph
+2025-10-28 13:20:24,195 - WARNING - Skipping generated graph stats for batch 1 graph 2 due to empty graph
+2025-10-28 13:20:24,626 - WARNING - Skipping generated graph stats for batch 1 graph 3 due to empty graph
+2025-10-28 13:20:25,057 - WARNING - Skipping generated graph stats for batch 1 graph 4 due to empty graph
+2025-10-28 13:20:25,488 - WARNING - Skipping generated graph stats for batch 1 graph 5 due to empty graph
+2025-10-28 13:20:25,918 - WARNING - Skipping generated graph stats for batch 1 graph 6 due to empty graph
+2025-10-28 13:20:26,349 - WARNING - Skipping generated graph stats for batch 1 graph 7 due to empty graph
+2025-10-28 13:20:26,782 - WARNING - Skipping generated graph stats for batch 1 graph 8 due to empty graph
+2025-10-28 13:20:27,212 - WARNING - Skipping generated graph stats for batch 1 graph 9 due to empty graph
+2025-10-28 13:20:27,644 - WARNING - Skipping generated graph stats for batch 1 graph 10 due to empty graph
+2025-10-28 13:20:28,074 - WARNING - Skipping generated graph stats for batch 1 graph 11 due to empty graph
+2025-10-28 13:20:28,506 - WARNING - Skipping generated graph stats for batch 1 graph 12 due to empty graph
+2025-10-28 13:20:28,937 - WARNING - Skipping generated graph stats for batch 1 graph 13 due to empty graph
+2025-10-28 13:20:29,502 - WARNING - Skipping generated graph stats for batch 1 graph 14 due to empty graph
+2025-10-28 13:20:30,117 - WARNING - Skipping generated graph stats for batch 1 graph 15 due to empty graph
+2025-10-28 13:20:30,733 - WARNING - Skipping generated graph stats for batch 1 graph 16 due to empty graph
+2025-10-28 13:20:31,314 - WARNING - Skipping generated graph stats for batch 1 graph 17 due to empty graph
+2025-10-28 13:20:31,756 - WARNING - Skipping generated graph stats for batch 1 graph 18 due to empty graph
+2025-10-28 13:20:32,181 - WARNING - Skipping generated graph stats for batch 1 graph 19 due to empty graph
+2025-10-28 13:20:32,606 - WARNING - Skipping generated graph stats for batch 1 graph 20 due to empty graph
+2025-10-28 13:20:33,030 - WARNING - Skipping generated graph stats for batch 1 graph 21 due to empty graph
+2025-10-28 13:20:33,448 - WARNING - Skipping generated graph stats for batch 1 graph 22 due to empty graph
+2025-10-28 13:20:33,859 - WARNING - Skipping generated graph stats for batch 1 graph 23 due to empty graph
+2025-10-28 13:20:34,275 - WARNING - Skipping generated graph stats for batch 1 graph 24 due to empty graph
+2025-10-28 13:20:34,699 - WARNING - Skipping generated graph stats for batch 1 graph 25 due to empty graph
+2025-10-28 13:20:35,126 - WARNING - Skipping generated graph stats for batch 1 graph 26 due to empty graph
+2025-10-28 13:20:35,551 - WARNING - Skipping generated graph stats for batch 1 graph 27 due to empty graph
+2025-10-28 13:20:35,976 - WARNING - Skipping generated graph stats for batch 1 graph 28 due to empty graph
+2025-10-28 13:20:36,412 - WARNING - Skipping generated graph stats for batch 1 graph 29 due to empty graph
+2025-10-28 13:20:36,837 - WARNING - Skipping generated graph stats for batch 1 graph 30 due to empty graph
+2025-10-28 13:20:37,262 - WARNING - Skipping generated graph stats for batch 1 graph 31 due to empty graph
+2025-10-28 13:20:37,687 - WARNING - Skipping generated graph stats for batch 2 graph 0 due to empty graph
+2025-10-28 13:20:38,104 - WARNING - Skipping generated graph stats for batch 2 graph 1 due to empty graph
+2025-10-28 13:20:38,525 - WARNING - Skipping generated graph stats for batch 2 graph 2 due to empty graph
+2025-10-28 13:20:38,948 - WARNING - Skipping generated graph stats for batch 2 graph 3 due to empty graph
+2025-10-28 13:20:39,373 - WARNING - Skipping generated graph stats for batch 2 graph 4 due to empty graph
+2025-10-28 13:20:39,798 - WARNING - Skipping generated graph stats for batch 2 graph 5 due to empty graph
+2025-10-28 13:20:40,224 - WARNING - Skipping generated graph stats for batch 2 graph 6 due to empty graph
+2025-10-28 13:20:40,675 - WARNING - Skipping generated graph stats for batch 2 graph 7 due to empty graph
+2025-10-28 13:20:41,100 - WARNING - Skipping generated graph stats for batch 2 graph 8 due to empty graph
+2025-10-28 13:20:41,525 - WARNING - Skipping generated graph stats for batch 2 graph 9 due to empty graph
+2025-10-28 13:20:41,949 - WARNING - Skipping generated graph stats for batch 2 graph 10 due to empty graph
+2025-10-28 13:20:42,373 - WARNING - Skipping generated graph stats for batch 2 graph 11 due to empty graph
+2025-10-28 13:20:42,797 - WARNING - Skipping generated graph stats for batch 2 graph 12 due to empty graph
+2025-10-28 13:20:43,222 - WARNING - Skipping generated graph stats for batch 2 graph 13 due to empty graph
+2025-10-28 13:20:43,646 - WARNING - Skipping generated graph stats for batch 2 graph 14 due to empty graph
+2025-10-28 13:20:44,075 - WARNING - Skipping generated graph stats for batch 2 graph 15 due to empty graph
+2025-10-28 13:20:44,511 - WARNING - Skipping generated graph stats for batch 2 graph 16 due to empty graph
+2025-10-28 13:20:44,936 - WARNING - Skipping generated graph stats for batch 2 graph 17 due to empty graph
+2025-10-28 13:20:45,360 - WARNING - Skipping generated graph stats for batch 2 graph 18 due to empty graph
+2025-10-28 13:20:45,785 - WARNING - Skipping generated graph stats for batch 2 graph 19 due to empty graph
+2025-10-28 13:20:46,210 - WARNING - Skipping generated graph stats for batch 2 graph 20 due to empty graph
+2025-10-28 13:20:46,635 - WARNING - Skipping generated graph stats for batch 2 graph 21 due to empty graph
+2025-10-28 13:20:47,060 - WARNING - Skipping generated graph stats for batch 2 graph 22 due to empty graph
+2025-10-28 13:20:47,485 - WARNING - Skipping generated graph stats for batch 2 graph 23 due to empty graph
+2025-10-28 13:20:47,909 - WARNING - Skipping generated graph stats for batch 2 graph 24 due to empty graph
+2025-10-28 13:20:48,334 - WARNING - Skipping generated graph stats for batch 2 graph 25 due to empty graph
+2025-10-28 13:20:48,759 - WARNING - Skipping generated graph stats for batch 2 graph 26 due to empty graph
+2025-10-28 13:20:49,185 - WARNING - Skipping generated graph stats for batch 2 graph 27 due to empty graph
+2025-10-28 13:20:49,606 - WARNING - Skipping generated graph stats for batch 2 graph 28 due to empty graph
+2025-10-28 13:20:50,030 - WARNING - Skipping generated graph stats for batch 2 graph 29 due to empty graph
+2025-10-28 13:20:50,448 - WARNING - Skipping generated graph stats for batch 2 graph 30 due to empty graph
+2025-10-28 13:20:50,871 - WARNING - Skipping generated graph stats for batch 2 graph 31 due to empty graph
+2025-10-28 13:20:51,294 - WARNING - Skipping generated graph stats for batch 3 graph 0 due to empty graph
+2025-10-28 13:20:51,712 - WARNING - Skipping generated graph stats for batch 3 graph 1 due to empty graph
+2025-10-28 13:20:52,133 - WARNING - Skipping generated graph stats for batch 3 graph 2 due to empty graph
+2025-10-28 13:20:52,581 - WARNING - Skipping generated graph stats for batch 3 graph 3 due to empty graph
+2025-10-28 13:20:53,004 - WARNING - Skipping generated graph stats for batch 3 graph 4 due to empty graph
+2025-10-28 13:20:53,428 - WARNING - Skipping generated graph stats for batch 3 graph 5 due to empty graph
+2025-10-28 13:20:53,853 - WARNING - Skipping generated graph stats for batch 3 graph 6 due to empty graph
+2025-10-28 13:20:54,278 - WARNING - Skipping generated graph stats for batch 3 graph 7 due to empty graph
+2025-10-28 13:20:54,703 - WARNING - Skipping generated graph stats for batch 3 graph 8 due to empty graph
+2025-10-28 13:20:55,128 - WARNING - Skipping generated graph stats for batch 3 graph 9 due to empty graph
+2025-10-28 13:20:55,552 - WARNING - Skipping generated graph stats for batch 3 graph 10 due to empty graph
+2025-10-28 13:20:55,977 - WARNING - Skipping generated graph stats for batch 3 graph 11 due to empty graph
+2025-10-28 13:20:56,410 - WARNING - Skipping generated graph stats for batch 3 graph 12 due to empty graph
+2025-10-28 13:20:56,863 - WARNING - Skipping generated graph stats for batch 3 graph 13 due to empty graph
+2025-10-28 13:20:57,314 - WARNING - Skipping generated graph stats for batch 3 graph 14 due to empty graph
+2025-10-28 13:20:57,740 - WARNING - Skipping generated graph stats for batch 3 graph 15 due to empty graph
+2025-10-28 13:20:58,164 - WARNING - Skipping generated graph stats for batch 3 graph 16 due to empty graph
+2025-10-28 13:20:58,591 - WARNING - Skipping generated graph stats for batch 3 graph 17 due to empty graph
+2025-10-28 13:20:59,016 - WARNING - Skipping generated graph stats for batch 3 graph 18 due to empty graph
+2025-10-28 13:20:59,463 - WARNING - Skipping generated graph stats for batch 3 graph 19 due to empty graph
+2025-10-28 13:20:59,889 - WARNING - Skipping generated graph stats for batch 3 graph 20 due to empty graph
+2025-10-28 13:21:00,310 - WARNING - Skipping generated graph stats for batch 3 graph 21 due to empty graph
+2025-10-28 13:21:00,732 - WARNING - Skipping generated graph stats for batch 3 graph 22 due to empty graph
+2025-10-28 13:21:01,157 - WARNING - Skipping generated graph stats for batch 3 graph 23 due to empty graph
+2025-10-28 13:21:01,582 - WARNING - Skipping generated graph stats for batch 3 graph 24 due to empty graph
+2025-10-28 13:21:02,008 - WARNING - Skipping generated graph stats for batch 3 graph 25 due to empty graph
+2025-10-28 13:21:02,433 - WARNING - Skipping generated graph stats for batch 3 graph 26 due to empty graph
+2025-10-28 13:21:02,858 - WARNING - Skipping generated graph stats for batch 3 graph 27 due to empty graph
+2025-10-28 13:21:03,284 - WARNING - Skipping generated graph stats for batch 3 graph 28 due to empty graph
+2025-10-28 13:21:03,709 - WARNING - Skipping generated graph stats for batch 3 graph 29 due to empty graph
+2025-10-28 13:21:04,133 - WARNING - Skipping generated graph stats for batch 3 graph 30 due to empty graph
+2025-10-28 13:21:04,579 - WARNING - Skipping generated graph stats for batch 3 graph 31 due to empty graph
+2025-10-28 13:21:05,004 - WARNING - Skipping generated graph stats for batch 4 graph 0 due to empty graph
+2025-10-28 13:21:05,421 - WARNING - Skipping generated graph stats for batch 4 graph 1 due to empty graph
+2025-10-28 13:21:05,842 - WARNING - Skipping generated graph stats for batch 4 graph 2 due to empty graph
+2025-10-28 13:21:06,267 - WARNING - Skipping generated graph stats for batch 4 graph 3 due to empty graph
+2025-10-28 13:21:06,692 - WARNING - Skipping generated graph stats for batch 4 graph 4 due to empty graph
+2025-10-28 13:21:07,115 - WARNING - Skipping generated graph stats for batch 4 graph 5 due to empty graph
+2025-10-28 13:21:07,540 - WARNING - Skipping generated graph stats for batch 4 graph 6 due to empty graph
+2025-10-28 13:21:07,964 - WARNING - Skipping generated graph stats for batch 4 graph 7 due to empty graph
+2025-10-28 13:21:08,402 - WARNING - Skipping generated graph stats for batch 4 graph 8 due to empty graph
+2025-10-28 13:21:08,826 - WARNING - Skipping generated graph stats for batch 4 graph 9 due to empty graph
+2025-10-28 13:21:09,252 - WARNING - Skipping generated graph stats for batch 4 graph 10 due to empty graph
+2025-10-28 13:21:09,676 - WARNING - Skipping generated graph stats for batch 4 graph 11 due to empty graph
+2025-10-28 13:21:10,101 - WARNING - Skipping generated graph stats for batch 4 graph 12 due to empty graph
+2025-10-28 13:21:10,525 - WARNING - Skipping generated graph stats for batch 4 graph 13 due to empty graph
+2025-10-28 13:21:10,951 - WARNING - Skipping generated graph stats for batch 4 graph 14 due to empty graph
+2025-10-28 13:21:11,375 - WARNING - Skipping generated graph stats for batch 4 graph 15 due to empty graph
+2025-10-28 13:21:11,799 - WARNING - Skipping generated graph stats for batch 4 graph 16 due to empty graph
+2025-10-28 13:21:12,224 - WARNING - Skipping generated graph stats for batch 4 graph 17 due to empty graph
+2025-10-28 13:21:12,672 - WARNING - Skipping generated graph stats for batch 4 graph 18 due to empty graph
+2025-10-28 13:21:13,098 - WARNING - Skipping generated graph stats for batch 4 graph 19 due to empty graph
+2025-10-28 13:21:13,523 - WARNING - Skipping generated graph stats for batch 4 graph 20 due to empty graph
+2025-10-28 13:21:13,947 - WARNING - Skipping generated graph stats for batch 4 graph 21 due to empty graph
+2025-10-28 13:21:14,388 - WARNING - Skipping generated graph stats for batch 4 graph 22 due to empty graph
+2025-10-28 13:21:14,839 - WARNING - Skipping generated graph stats for batch 4 graph 23 due to empty graph
