@@ -703,6 +703,12 @@ parser.add_argument('--early-stop-patience-denoiser', type=int, default=20,
                     help='Number of epochs with no validation loss improvement before diffusion training stops early')
 parser.add_argument('--n-properties', type=int, default=15)
 parser.add_argument('--dim-condition', type=int, default=128)
+parser.add_argument('--save-graph-figures', action='store_true', default=False,
+                    help='Save PNG comparisons of ground truth and reconstructed graphs during autoencoder evaluation')
+parser.add_argument('--num-graph-figures', type=int, default=8,
+                    help='Maximum number of graph comparison figures to save when --save-graph-figures is set')
+parser.add_argument('--graph-figure-dir', type=str, default='figures/autoencoder_eval',
+                    help='Output directory for saved graph comparison figures')
 # Homophily configuration
 parser.add_argument('--homophily-type', type=str, default='label', choices=['label', 'feature'],
                     help='Type of homophily to use as conditioning: label or feature')
@@ -858,6 +864,9 @@ print("\n" + "="*80)
 print("Normalizing graph statistics (z-score)...")
 print("="*80)
 
+stats_mean_arr = None
+stats_std_arr = None
+
 # Collect all stats from training set to compute mean and std
 train_stats = []
 for idx in train_idx:
@@ -897,6 +906,9 @@ if len(train_stats) > 0:
         'stats_mean': stats_mean,
         'stats_std': stats_std
     }
+    stats_mean_arr = stats_mean
+    stats_std_arr = stats_std
+
     torch.save(normalization_params, 'stats_normalization.pt')
     print(f"  ✓ Normalized {len(data_lst)} graphs")
     print(f"  ✓ Saved normalization parameters to stats_normalization.pt")
@@ -904,6 +916,18 @@ else:
     print("  ⚠ Warning: No stats found in dataset, skipping normalization")
 
 print("="*80 + "\n")
+
+if stats_mean_arr is None or stats_std_arr is None:
+    norm_path = Path('stats_normalization.pt')
+    if norm_path.exists():
+        try:
+            norm_params = torch.load(norm_path)
+            stats_mean_arr = np.array(norm_params.get('stats_mean')) if norm_params.get('stats_mean') is not None else None
+            stats_std_arr = np.array(norm_params.get('stats_std')) if norm_params.get('stats_std') is not None else None
+            if stats_mean_arr is not None and stats_std_arr is not None:
+                print("Loaded normalization parameters from stats_normalization.pt")
+        except Exception as exc:
+            print(f"⚠ Warning: Failed to load normalization parameters from {norm_path}: {exc}")
 
 train_loader = DataLoader([data_lst[i] for i in train_idx], batch_size=args.batch_size, shuffle=True)
 val_loader = DataLoader([data_lst[i] for i in val_idx], batch_size=args.batch_size, shuffle=False)
@@ -1310,7 +1334,15 @@ print(f"Test set size: {len(test_loader)} batches")
 print("Computing graph similarity metrics (Weisfeiler-Lehman kernel)...")
 print("="*80 + "\n")
 logger.info("Evaluating autoencoder on %d test batches", len(test_loader))
-eval_autoencoder(test_loader, autoencoder, args.n_max_nodes, device)
+eval_autoencoder(
+    test_loader,
+    autoencoder,
+    args.n_max_nodes,
+    device,
+    save_figures=args.save_graph_figures,
+    fig_dir=args.graph_figure_dir,
+    max_graphs=args.num_graph_figures
+)
 
 
 # define beta schedule
@@ -1575,6 +1607,7 @@ for k, data in enumerate(tqdm(test_loader, desc='Processing test set',)):
                     i, k
                 )
                 continue
+
             cond = stat_d[i].unsqueeze(0)
             cond = torch.nan_to_num(cond, nan=-100.0)
             samples = sample_node_level(
@@ -1587,18 +1620,61 @@ for k, data in enumerate(tqdm(test_loader, desc='Processing test set',)):
             )
             node_latents = samples[-1]
             generated = autoencoder.generate_from_latents(node_latents)
-            adj_generated = generated['adjacency']
-            adj_generated = torch.where(adj_generated > 0.5, torch.ones_like(adj_generated), torch.zeros_like(adj_generated))
+            adj_prob = generated['adjacency']
 
-            adj_padded = torch.zeros((args.n_max_nodes, args.n_max_nodes), device=adj_generated.device)
-            adj_padded[:n_nodes, :n_nodes] = adj_generated
+            # Ensure symmetry in probabilities
+            adj_prob = 0.5 * (adj_prob + adj_prob.transpose(0, 1))
+
+            # Determine target edge count from denormalized stats if available
+            target_edges = None
+            if stats_mean_arr is not None and stats_std_arr is not None:
+                cond_np = cond.squeeze(0).detach().cpu().numpy()
+                cond_np = np.nan_to_num(cond_np, nan=0.0)
+                if len(stats_mean_arr) == cond_np.shape[0]:
+                    stats_denorm = cond_np * stats_std_arr + stats_mean_arr
+                    if len(stats_denorm) > 1 and not np.isnan(stats_denorm[1]):
+                        target_edges = int(max(0, round(stats_denorm[1])))
+
+            if target_edges is None:
+                # Fallback: use expected edge count from probability mass
+                target_edges = int(max(0, round(adj_prob.sum().item() / 2.0)))
+
+            max_possible_edges = n_nodes * (n_nodes - 1) // 2
+            target_edges = int(min(max_possible_edges, target_edges))
+
+            adj_selected = torch.zeros_like(adj_prob)
+            if n_nodes > 1 and target_edges > 0:
+                triu_idx = torch.triu_indices(n_nodes, n_nodes, offset=1, device=adj_prob.device)
+                scores = adj_prob[triu_idx[0], triu_idx[1]]
+                if scores.numel() > 0:
+                    k_edges = min(target_edges, scores.numel())
+                    if k_edges > 0:
+                        topk = torch.topk(scores, k_edges)
+                        selected_rows = triu_idx[0][topk.indices]
+                        selected_cols = triu_idx[1][topk.indices]
+                        adj_selected[selected_rows, selected_cols] = 1.0
+                        adj_selected[selected_cols, selected_rows] = 1.0
+                else:
+                    logger.warning(
+                        "No edge scores available for batch %d graph %d; generating empty graph",
+                        k, i
+                    )
+            else:
+                if target_edges == 0:
+                    logger.warning(
+                        "Target edge count is zero for batch %d graph %d; generated graph will be empty",
+                        k, i
+                    )
+
+            adj_padded = torch.zeros((args.n_max_nodes, args.n_max_nodes), device=adj_prob.device)
+            adj_padded[:n_nodes, :n_nodes] = adj_selected
 
             Gs_generated = construct_nx_from_adj(adj_padded.detach().cpu().numpy())
             stat_x = torch.nan_to_num(stat_d[i], nan=-100.0).detach().cpu().numpy()
             if Gs_generated.number_of_nodes() == 0:
                 logger.warning(
-                    "Skipping generated graph stats for batch %d graph %d due to empty graph",
-                    k, i
+                    "Generated graph empty for batch %d graph %d even after edge selection (target_edges=%d)",
+                    k, i, target_edges
                 )
                 continue
             ground_truth.append(stat_x)
