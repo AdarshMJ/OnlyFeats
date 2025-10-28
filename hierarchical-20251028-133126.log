@@ -1,0 +1,66 @@
+2025-10-28 13:31:26,151 - INFO - Logging to logs/hierarchical-20251028-133126.log
+2025-10-28 13:31:26,152 - INFO - Arguments: {
+  "lr": 0.001,
+  "dropout": 0.0,
+  "batch_size": 256,
+  "data_path": "data/labelhomophilyall_graphs.pkl",
+  "graphs_dir": "generated data/graphs",
+  "stats_dir": "generated data/stats",
+  "use_cached_stats": true,
+  "recompute_stats": false,
+  "teacher_decoder_path": "teacherfeature/best_model.pth",
+  "teacher_type": "feature_vae",
+  "train_teacher_if_missing": true,
+  "teacher_epochs": 100,
+  "epochs_autoencoder": 100,
+  "hidden_dim_encoder": 32,
+  "hidden_dim_decoder": 64,
+  "latent_dim": 32,
+  "n_max_nodes": 100,
+  "n_layers_encoder": 2,
+  "n_layers_decoder": 3,
+  "spectral_emb_dim": 10,
+  "variational_autoencoder": true,
+  "epochs_denoise": 100,
+  "timesteps": 500,
+  "hidden_dim_denoise": 512,
+  "n_layers_denoise": 3,
+  "train_autoencoder": false,
+  "train_denoiser": false,
+  "early_stop_patience_autoencoder": 20,
+  "early_stop_patience_denoiser": 20,
+  "n_properties": 16,
+  "dim_condition": 128,
+  "save_graph_figures": true,
+  "num_graph_figures": 8,
+  "graph_figure_dir": "figures/autoencoder_eval",
+  "homophily_type": "label",
+  "use_hierarchical": true,
+  "num_classes": 3,
+  "feat_dim": 32,
+  "teacher_latent_dim": 512,
+  "lambda_label": 1.0,
+  "lambda_struct": 1.0,
+  "lambda_feat": 0.5,
+  "lambda_hom": 2.0
+}
+2025-10-28 13:31:32,833 - INFO - Loaded dataset with 7000 graphs using data path data/labelhomophilyall_graphs.pkl
+2025-10-28 13:31:33,039 - INFO - Dataset split sizes - train: 5600, val: 700, test: 700, batch size: 256
+2025-10-28 13:31:34,052 - INFO - Teacher decoder loaded from teacherfeature/best_model.pth
+2025-10-28 13:31:34,071 - INFO - Loaded autoencoder checkpoint from autoencoder.pth.tar
+2025-10-28 13:31:34,072 - INFO - Evaluating autoencoder on 3 test batches
+2025-10-28 13:31:34,072 - INFO - Saving up to 8 graph comparison figures to figures/autoencoder_eval
+2025-10-28 13:31:35,288 - INFO - Saved graph comparison figure to figures/autoencoder_eval/graph_batch0_idx0.png
+2025-10-28 13:31:35,513 - INFO - Saved graph comparison figure to figures/autoencoder_eval/graph_batch0_idx1.png
+2025-10-28 13:31:35,738 - INFO - Saved graph comparison figure to figures/autoencoder_eval/graph_batch0_idx2.png
+2025-10-28 13:31:35,969 - INFO - Saved graph comparison figure to figures/autoencoder_eval/graph_batch0_idx3.png
+2025-10-28 13:31:36,175 - INFO - Saved graph comparison figure to figures/autoencoder_eval/graph_batch0_idx4.png
+2025-10-28 13:31:36,369 - INFO - Saved graph comparison figure to figures/autoencoder_eval/graph_batch0_idx5.png
+2025-10-28 13:31:36,541 - INFO - Saved graph comparison figure to figures/autoencoder_eval/graph_batch0_idx6.png
+2025-10-28 13:31:36,698 - INFO - Saved graph comparison figure to figures/autoencoder_eval/graph_batch0_idx7.png
+2025-10-28 13:31:36,699 - INFO - Reached maximum of 8 saved graph figures
+2025-10-28 13:31:36,699 - INFO - Average WL similarity: 0.455553 computed over 8 graph pairs (skipped 0)
+2025-10-28 13:31:36,699 - INFO - Saved 8 graph comparison figures to figures/autoencoder_eval
+2025-10-28 13:31:36,719 - INFO - Loaded diffusion checkpoint from denoise_model.pth.tar
+2025-10-28 13:31:36,719 - INFO - Starting diffusion sampling on 3 test batches (timesteps=500, latent_dim=32)
+2025-10-28 13:36:37,309 - INFO - Saved generated statistics to y_stats.txt and y_pred_stats.txt
