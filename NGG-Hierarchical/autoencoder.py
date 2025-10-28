@@ -55,7 +55,7 @@ class StructureDecoder(nn.Module):
         # This models P(edge | same_class) vs P(edge | diff_class)
         self.homophily_bias = nn.Parameter(torch.ones(num_classes, num_classes))
     
-    def forward(self, z_nodes, y_pred, apply_bias=True):
+    def forward(self, z_nodes, y_pred, batch=None, apply_bias=True):
         """
         Args:
             z_nodes: [num_nodes, latent_dim]
@@ -97,6 +97,10 @@ class StructureDecoder(nn.Module):
             adj = adj_base
 
         adj = 0.5 * (adj + adj.T)
+
+        if batch is not None:
+            batch_mask = (batch.unsqueeze(1) == batch.unsqueeze(0)).float()
+            adj = adj * batch_mask
         
         # Remove self-loops
         adj = adj * (1 - torch.eye(num_nodes, device=adj.device))
@@ -508,7 +512,7 @@ class HierarchicalVAE(nn.Module):
         else:
             return mu
     
-    def decode_hierarchical(self, z_nodes, ground_truth_labels=None, edge_index_true=None, apply_structure_bias=True):
+    def decode_hierarchical(self, z_nodes, batch=None, ground_truth_labels=None, edge_index_true=None, apply_structure_bias=True):
         """
         Hierarchical decoding: Label → Structure → Features
         
@@ -529,7 +533,7 @@ class HierarchicalVAE(nn.Module):
         
         # Step 2: Decode structure (conditioned on labels)
         adjacency = self.structure_decoder(
-            z_nodes, labels_for_struct, apply_bias=apply_structure_bias
+            z_nodes, labels_for_struct, batch=batch, apply_bias=apply_structure_bias
         )  # [num_nodes, num_nodes]
         
         # Convert to edge_index for GNN
@@ -554,6 +558,7 @@ class HierarchicalVAE(nn.Module):
         z_nodes, mu, logvar = self.encode(data, graph_stats)
         outputs = self.decode_hierarchical(
             z_nodes,
+            batch=data.batch if hasattr(data, 'batch') else None,
             ground_truth_labels=data.y if hasattr(data, 'y') else None,
             edge_index_true=data.edge_index if hasattr(data, 'edge_index') else None
         )
@@ -707,6 +712,10 @@ class HierarchicalVAE(nn.Module):
             dict with generated graph components
         """
         with torch.no_grad():
-            outputs = self.decode_hierarchical(z_nodes, ground_truth_labels=None,
-                                               apply_structure_bias=apply_structure_bias)
+            outputs = self.decode_hierarchical(
+                z_nodes,
+                batch=None,
+                ground_truth_labels=None,
+                apply_structure_bias=apply_structure_bias
+            )
         return outputs
