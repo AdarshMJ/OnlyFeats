@@ -77,7 +77,7 @@ class StructureDecoder(nn.Module):
         z_struct = self.label_transform(z_combined)  # [N, latent_dim]
         
         # Inner product decoder
-        adj_base = torch.sigmoid(z_struct @ z_struct.T)  # [N, N]
+        adj_base = torch.sigmoid(z_struct @ z_struct.T)
         
         if apply_bias:
             # Apply label homophily bias
@@ -88,12 +88,15 @@ class StructureDecoder(nn.Module):
             
             # Softmax homophily bias to ensure valid probabilities
             bias_matrix = F.softmax(self.homophily_bias, dim=1)
+            bias_matrix = 0.5 * (bias_matrix + bias_matrix.t())
             label_bias = bias_matrix[y_expanded_i, y_expanded_j]
             
             # Combine base adjacency with label bias
             adj = adj_base * label_bias
         else:
             adj = adj_base
+
+        adj = 0.5 * (adj + adj.T)
         
         # Remove self-loops
         adj = adj * (1 - torch.eye(num_nodes, device=adj.device))
@@ -160,8 +163,7 @@ class FeatureDecoder(nn.Module):
         
         # Use frozen teacher decoder to generate features
         if self.teacher_decoder is not None:
-            with torch.no_grad():
-                features = self.teacher_decoder(z_feat)
+            features = self.teacher_decoder(z_feat)
         else:
             # Fallback: simple linear projection if no teacher
             if not hasattr(self, 'fallback_projection'):
@@ -506,7 +508,7 @@ class HierarchicalVAE(nn.Module):
         else:
             return mu
     
-    def decode_hierarchical(self, z_nodes, ground_truth_labels=None, apply_structure_bias=True):
+    def decode_hierarchical(self, z_nodes, ground_truth_labels=None, edge_index_true=None, apply_structure_bias=True):
         """
         Hierarchical decoding: Label → Structure → Features
         
@@ -531,11 +533,12 @@ class HierarchicalVAE(nn.Module):
         )  # [num_nodes, num_nodes]
         
         # Convert to edge_index for GNN
-        edge_index, _ = dense_to_sparse(adjacency > 0.5)
+        edge_index_pred, _ = dense_to_sparse(adjacency > 0.5)
+        edge_index_for_features = edge_index_true if edge_index_true is not None else edge_index_pred
         
         # Step 3: Decode features (conditioned on labels + structure)
         features = self.feature_decoder(
-            z_nodes, labels_for_struct, edge_index
+            z_nodes, labels_for_struct, edge_index_for_features
         )  # [num_nodes, feat_dim]
         
         return {
@@ -543,15 +546,16 @@ class HierarchicalVAE(nn.Module):
             'labels': labels_pred,
             'adjacency': adjacency,
             'features': features,
-            'edge_index': edge_index
+            'edge_index': edge_index_pred
         }
     
     def forward(self, data, graph_stats=None):
         """Full forward pass"""
         z_nodes, mu, logvar = self.encode(data, graph_stats)
         outputs = self.decode_hierarchical(
-            z_nodes, 
-            ground_truth_labels=data.y if hasattr(data, 'y') else None
+            z_nodes,
+            ground_truth_labels=data.y if hasattr(data, 'y') else None,
+            edge_index_true=data.edge_index if hasattr(data, 'edge_index') else None
         )
         outputs['mu'] = mu
         outputs['logvar'] = logvar
@@ -622,9 +626,9 @@ class HierarchicalVAE(nn.Module):
             hom_loss = torch.tensor(0.0, device=device)
         
         # 5. KL divergence (VAE regularization)
-        kl_loss = -0.5 * torch.sum(
-            1 + outputs['logvar'] - outputs['mu'].pow(2) - outputs['logvar'].exp()
-        ) / num_nodes
+        # KL divergence per element, then average over all dimensions
+        kl_per_element = -0.5 * (1 + outputs['logvar'] - outputs['mu'].pow(2) - outputs['logvar'].exp())
+        kl_loss = torch.mean(kl_per_element)  # Average over all nodes and latent dims
         
         # Total loss
         total_loss = (
@@ -679,15 +683,11 @@ class HierarchicalVAE(nn.Module):
             y_expanded_j = y_b.unsqueeze(0).expand(n_nodes, n_nodes)
             same_label = (y_expanded_i == y_expanded_j).float()
             
-            # Weight by edge probabilities
-            edge_mask = (adj_b > 0.5).float()
-            num_edges = edge_mask.sum()
-            
-            if num_edges > 0:
-                same_label_edges = (edge_mask * same_label).sum()
-                actual_hom = same_label_edges / num_edges
-            else:
-                actual_hom = torch.tensor(0.0, device=device)
+            # Weight by edge probabilities without hard thresholds to keep gradients
+            edge_weights = adj_b * (1 - torch.eye(n_nodes, device=device))
+            total_weight = edge_weights.sum().clamp(min=1e-8)
+            same_label_weight = (edge_weights * same_label).sum()
+            actual_hom = same_label_weight / total_weight
             
             # MSE between actual and target
             hom_loss += (actual_hom - target_hom[b])**2
