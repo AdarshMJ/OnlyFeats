@@ -80,23 +80,20 @@ class StructureDecoder(nn.Module):
         adj_base = torch.sigmoid(z_struct @ z_struct.T)
         
         if apply_bias:
-            # Apply label homophily bias
-            # Create label similarity matrix: bias[y[i], y[j]] for each (i,j) pair
             y_indices = y_pred if y_pred.dim() == 1 else y_pred.argmax(dim=1)
             y_expanded_i = y_indices.unsqueeze(1).expand(num_nodes, num_nodes)
             y_expanded_j = y_indices.unsqueeze(0).expand(num_nodes, num_nodes)
-            
-            # Softmax homophily bias to ensure valid probabilities
+
             bias_matrix = F.softmax(self.homophily_bias, dim=1)
             bias_matrix = 0.5 * (bias_matrix + bias_matrix.t())
             label_bias = bias_matrix[y_expanded_i, y_expanded_j]
-            
-            # Combine base adjacency with label bias
+
             adj = adj_base * label_bias
         else:
             adj = adj_base
 
         adj = 0.5 * (adj + adj.T)
+        adj = torch.clamp(adj, min=1e-6, max=1-1e-6)
 
         if batch is not None:
             batch_mask = (batch.unsqueeze(1) == batch.unsqueeze(0)).float()
@@ -606,7 +603,13 @@ class HierarchicalVAE(nn.Module):
                 adj_pred = outputs['adjacency'][node_idx:node_idx+n_nodes_in_graph, 
                                                 node_idx:node_idx+n_nodes_in_graph]
                 
-                struct_loss += F.binary_cross_entropy(adj_pred, adj_true, reduction='sum')
+                pos_edges = adj_true.sum()
+                neg_edges = adj_true.numel() - pos_edges
+                pos_weight = (neg_edges / (pos_edges + 1e-6)).clamp(min=1.0)
+
+                bce = F.binary_cross_entropy(adj_pred, adj_true, reduction='none')
+                weights = torch.where(adj_true > 0.5, pos_weight, 1.0)
+                struct_loss += (weights * bce).sum()
                 node_idx += n_nodes_in_graph
             
             struct_loss = struct_loss / num_nodes
