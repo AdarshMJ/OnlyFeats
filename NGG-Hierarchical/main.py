@@ -1019,11 +1019,10 @@ if args.train_autoencoder:
                 # Hierarchical VAE training
                 outputs = autoencoder(data, graph_stats=data.stats)
                 
-                # Extract target label homophily from stats if available
-                # Assuming stats has label_hom at index 15 (or customize based on your data)
+                # Extract target label homophily from graph attributes if available
                 target_hom = None
-                if hasattr(data, 'stats') and data.stats.shape[1] > 15:
-                    target_hom = data.stats[:, 15]  # Adjust index based on your stats order
+                if hasattr(data, 'label_homophily') and data.label_homophily is not None:
+                    target_hom = data.label_homophily
                 
                 losses = autoencoder.loss_function(
                     data, outputs,
@@ -1090,8 +1089,8 @@ if args.train_autoencoder:
                     outputs = autoencoder(data, graph_stats=data.stats)
                     
                     target_hom = None
-                    if hasattr(data, 'stats') and data.stats.shape[1] > 15:
-                        target_hom = data.stats[:, 15]
+                    if hasattr(data, 'label_homophily') and data.label_homophily is not None:
+                        target_hom = data.label_homophily
                     
                     losses = autoencoder.loss_function(
                         data, outputs,
