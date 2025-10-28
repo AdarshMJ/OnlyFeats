@@ -1,6 +1,7 @@
 import os
 import math
 import logging
+from pathlib import Path
 import networkx as nx
 import numpy as np
 import scipy as sp
@@ -25,11 +26,29 @@ def construct_nx_from_adj(adj):
     return G
 
 
-def eval_autoencoder(test_loader, autoencoder, n_max_nodes, device):
+def eval_autoencoder(
+    test_loader,
+    autoencoder,
+    n_max_nodes,
+    device,
+    save_figures=False,
+    fig_dir='figures/autoencoder_eval',
+    max_graphs=8
+):
     """Evaluate autoencoder reconstructions with WL kernel while handling empty graphs."""
     logger = logging.getLogger("ngg")
     sims = []
     skipped = 0
+    saved_figs = 0
+    fig_path = None
+    if save_figures:
+        fig_path = Path(fig_dir)
+        fig_path.mkdir(parents=True, exist_ok=True)
+        logger.info(
+            "Saving up to %d graph comparison figures to %s",
+            max_graphs,
+            fig_path
+        )
 
     for batch_idx, data in enumerate(test_loader):
         data = data.to(device)
@@ -173,6 +192,80 @@ def eval_autoencoder(test_loader, autoencoder, n_max_nodes, device):
                     "Failed WL kernel computation for batch %d graph %d: %s",
                     batch_idx, i, exc
                 )
+                continue
+
+            if save_figures and saved_figs < max_graphs:
+                try:
+                    import matplotlib.pyplot as plt
+                except ImportError as plt_exc:
+                    logger.error("matplotlib not available, skipping graph visualization: %s", plt_exc)
+                    save_figures = False
+                else:
+                    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+
+                    # Shared layout for consistent comparison if possible
+                    layout_seed = 42
+                    pos_true = nx.spring_layout(G_true, seed=layout_seed) if G_true.number_of_nodes() > 0 else {}
+                    pos_pred = pos_true if set(G_pred.nodes()) == set(G_true.nodes()) else nx.spring_layout(G_pred, seed=layout_seed)
+
+                    node_colors_true = None
+                    node_colors_pred = None
+                    if gt_labels is not None:
+                        node_colors_true = [int(gt_labels[j]) for j in G_true.nodes()]
+                    if pred_labels is not None:
+                        node_colors_pred = [int(pred_labels[j]) for j in G_pred.nodes()]
+
+                    axes[0].set_xlabel('Ground Truth', fontsize=25)
+                    axes[0].set_ylabel('Nodes', fontsize=25)
+                    axes[1].set_xlabel('Reconstruction', fontsize=25)
+                    axes[1].set_ylabel('Nodes', fontsize=25)
+
+                    for ax in axes:
+                        ax.set_xticks([])
+                        ax.set_yticks([])
+                        ax.spines['top'].set_visible(False)
+                        ax.spines['bottom'].set_visible(False)
+                        ax.spines['left'].set_visible(False)
+                        ax.spines['right'].set_visible(False)
+
+                    nx.draw_networkx(
+                        G_true,
+                        pos=pos_true,
+                        ax=axes[0],
+                        node_color=node_colors_true,
+                        cmap=plt.cm.Set2,
+                        with_labels=False,
+                        node_size=200,
+                        edge_color='#444444'
+                    )
+                    nx.draw_networkx(
+                        G_pred,
+                        pos=pos_pred,
+                        ax=axes[1],
+                        node_color=node_colors_pred,
+                        cmap=plt.cm.Set2,
+                        with_labels=False,
+                        node_size=200,
+                        edge_color='#444444'
+                    )
+
+                    fig.tight_layout()
+                    fig_filename = fig_path / f"graph_batch{batch_idx}_idx{i}.png"
+                    fig.savefig(fig_filename, bbox_inches='tight')
+                    plt.close(fig)
+
+                    logger.info(
+                        "Saved graph comparison figure to %s", fig_filename
+                    )
+                    saved_figs += 1
+
+                    if saved_figs >= max_graphs:
+                        logger.info(
+                            "Reached maximum of %d saved graph figures", max_graphs
+                        )
+                        break
+        if save_figures and saved_figs >= max_graphs:
+            break
 
     if sims:
         avg_sim = float(np.mean(sims))
@@ -184,6 +277,13 @@ def eval_autoencoder(test_loader, autoencoder, n_max_nodes, device):
     else:
         print('Average similarity: nan')
         logger.warning("No valid WL similarities computed (skipped %d graph pairs)", skipped)
+
+    if save_figures and fig_path is not None:
+        logger.info(
+            "Saved %d graph comparison figures to %s",
+            saved_figs,
+            fig_path
+        )
 
 
 def handle_nan(x):
