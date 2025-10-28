@@ -4,6 +4,8 @@ import random
 import scipy as sp
 import pickle
 import json
+import logging
+from pathlib import Path
 
 import scipy.sparse as sparse
 from tqdm import tqdm
@@ -25,6 +27,30 @@ from utils import create_dataset, CustomDataset, linear_beta_schedule, read_stat
 
 from torch.utils.data import Subset
 np.random.seed(13)
+
+
+def setup_logging(run_prefix: str = "run"):
+    """Configure logging to capture console output and persist it to disk."""
+    log_dir = Path("logs")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_path = log_dir / f"{run_prefix}-{timestamp}.log"
+
+    logger = logging.getLogger("ngg")
+    logger.setLevel(logging.INFO)
+    logger.handlers.clear()
+
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+
+    file_handler = logging.FileHandler(log_path)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+    return logger, log_path
 
 
 def load_teacher_decoder(checkpoint_path, teacher_type='mlp', device='cpu', feat_dim=32, latent_dim=512):
@@ -695,6 +721,11 @@ parser.add_argument('--lambda-hom', type=float, default=2.0,
                     help='Weight for label homophily loss')
 args = parser.parse_args()
 
+log_prefix = "hierarchical" if args.use_hierarchical else "standard"
+logger, log_path = setup_logging(log_prefix)
+logger.info("Logging to %s", log_path)
+logger.info("Arguments: %s", json.dumps(vars(args), indent=2))
+
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 # Load or create dataset with precomputed statistics
@@ -702,6 +733,7 @@ print("="*80)
 print("Loading dataset...")
 print("="*80)
 data_lst = load_or_create_dataset(args, device)
+logger.info("Loaded dataset with %d graphs using data path %s", len(data_lst), args.data_path)
 
 # Create stratified split based on label homophily
 print("\nCreating stratified train/val/test split based on label homophily...")
@@ -883,6 +915,10 @@ print(f"  Test set: {len(test_idx)} graphs")
 print(f"  Batch size: {args.batch_size}")
 print(f"  Training batches per epoch: {len(train_loader)}")
 print(f"  Validation batches per epoch: {len(val_loader)}")
+logger.info(
+    "Dataset split sizes - train: %d, val: %d, test: %d, batch size: %d",
+    len(train_idx), len(val_idx), len(test_idx), args.batch_size
+)
 
 # Check stratification worked
 print("\nLabel Homophily Distribution (stratified split):")
@@ -935,8 +971,10 @@ if args.use_hierarchical:
         if teacher_decoder is not None:
             autoencoder.set_teacher_decoder(teacher_decoder)
             print("✓ Teacher decoder loaded and frozen")
+            logger.info("Teacher decoder loaded from %s", args.teacher_decoder_path)
         else:
             print("⚠ Warning: Failed to load teacher decoder")
+            logger.warning("Failed to load teacher decoder from %s", args.teacher_decoder_path)
     
     elif args.train_teacher_if_missing and args.teacher_decoder_path is not None:
         # Train new teacher
@@ -955,14 +993,17 @@ if args.use_hierarchical:
         if teacher_decoder is not None:
             autoencoder.set_teacher_decoder(teacher_decoder)
             print("✓ Trained teacher decoder loaded and frozen")
+            logger.info("Auto-trained teacher decoder stored at %s", args.teacher_decoder_path)
         else:
             print("⚠ Warning: Failed to train teacher decoder")
+            logger.warning("Failed to auto-train teacher decoder for path %s", args.teacher_decoder_path)
     
     else:
         print("⚠ Warning: No teacher decoder specified, using fallback projection")
         print("  Use --teacher-decoder-path to specify a checkpoint")
         if not args.train_teacher_if_missing:
             print("  Or enable auto-training with --train-teacher-if-missing")
+        logger.warning("No teacher decoder provided; using fallback projection.")
     
 elif args.variational_autoencoder:
     autoencoder = VariationalAutoEncoder(
@@ -991,6 +1032,10 @@ if args.train_autoencoder:
     print(f"Training batches: {len(train_loader)}")
     print(f"Validation batches: {len(val_loader)}")
     print(f"{'='*60}\n")
+    logger.info(
+        "Starting autoencoder training for %d epochs (%d train batches, %d val batches)",
+        args.epochs_autoencoder, len(train_loader), len(val_loader)
+    )
     
     best_val_loss = np.inf
     for epoch in range(1, args.epochs_autoencoder+1):
@@ -1132,33 +1177,58 @@ if args.train_autoencoder:
         if epoch % 1 == 0:
             dt_t = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             if args.use_hierarchical:
+                train_total = train_loss_all/train_count
+                train_label = train_label_loss/train_count
+                train_struct = train_struct_loss/train_count
+                train_feat = train_feat_loss/train_count
+                train_hom = train_hom_loss/train_count
+                train_kl = train_kl_loss/train_count
+                val_total = val_loss_all/val_count
+                logger.info(
+                    "%s Epoch: %04d, Train Loss: %.5f [Label: %.3f, Struct: %.3f, Feat: %.3f, Hom: %.3f, KL: %.3f], Val Loss: %.5f",
+                    dt_t, epoch, train_total, train_label, train_struct, train_feat, train_hom, train_kl, val_total
+                )
                 print(f"\n{'-'*80}")
                 print('{} Epoch: {:04d}, Train Loss: {:.5f} [Label: {:.3f}, Struct: {:.3f}, Feat: {:.3f}, Hom: {:.3f}, KL: {:.3f}], Val Loss: {:.5f}'.format(
                     dt_t, epoch, 
-                    train_loss_all/train_count,
-                    train_label_loss/train_count,
-                    train_struct_loss/train_count,
-                    train_feat_loss/train_count,
-                    train_hom_loss/train_count,
-                    train_kl_loss/train_count,
-                    val_loss_all/val_count
+                    train_total,
+                    train_label,
+                    train_struct,
+                    train_feat,
+                    train_hom,
+                    train_kl,
+                    val_total
                 ))
                 print(f"{'-'*80}\n")
             elif args.variational_autoencoder:
+                train_total = train_loss_all/train_count
+                train_recon = train_loss_all_recon/train_count
+                train_kld = train_loss_all_kld/train_count
+                val_total = val_loss_all/val_count
+                val_recon = val_loss_all_recon/val_count
+                val_kld = val_loss_all_kld/val_count
+                logger.info(
+                    "%s Epoch: %04d, Train Loss: %.5f, Train Reconstruction Loss: %.2f, Train KLD Loss: %.2f, Val Loss: %.5f, Val Reconstruction Loss: %.2f, Val KLD Loss: %.2f",
+                    dt_t, epoch, train_total, train_recon, train_kld, val_total, val_recon, val_kld
+                )
                 print('{} Epoch: {:04d}, Train Loss: {:.5f}, Train Reconstruction Loss: {:.2f}, Train KLD Loss: {:.2f}, Val Loss: {:.5f}, Val Reconstruction Loss: {:.2f}, Val KLD Loss: {:.2f}'.format(
                     dt_t, epoch, 
-                    train_loss_all/train_count, 
-                    train_loss_all_recon/train_count, 
-                    train_loss_all_kld/train_count, 
-                    val_loss_all/val_count, 
-                    val_loss_all_recon/val_count, 
-                    val_loss_all_kld/val_count
+                    train_total, 
+                    train_recon, 
+                    train_kld, 
+                    val_total, 
+                    val_recon, 
+                    val_kld
                 ))
             else:
+                train_total = train_loss_all/train_count
+                val_total = val_loss_all/val_count
+                logger.info(
+                    "%s Epoch: %04d, Train Loss: %.5f, Val Loss: %.5f",
+                    dt_t, epoch, train_total, val_total
+                )
                 print('{} Epoch: {:04d}, Train Loss: {:.5f}, Val Loss: {:.5f}'.format(
-                    dt_t, epoch, 
-                    train_loss_all/train_count, 
-                    val_loss_all/val_count
+                    dt_t, epoch, train_total, val_total
                 ))
 
         scheduler.step()
@@ -1169,14 +1239,26 @@ if args.train_autoencoder:
                 'state_dict': autoencoder.state_dict(),
                 'optimizer' : optimizer.state_dict(),
             }, 'autoencoder.pth.tar')
+            logger.info(
+                "Saved best autoencoder checkpoint at epoch %04d with val_loss=%.5f",
+                epoch, val_loss_all/val_count
+            )
             print(f"✓ Saved best autoencoder checkpoint (val_loss={val_loss_all/val_count:.5f}) [NEW BEST!]")
         else:
+            logger.info(
+                "Validation loss %.5f did not improve on best %.5f",
+                val_loss_all/val_count, best_val_loss/val_count
+            )
             print(f"  Val loss ({val_loss_all/val_count:.5f}) did not improve from best ({best_val_loss/val_count:.5f})")
     
     print(f"\n{'='*60}")
     print(f"Autoencoder Training Complete!")
     print(f"Best validation loss: {best_val_loss/val_count:.5f}")
     print(f"{'='*60}\n")
+    logger.info(
+        "Autoencoder training complete. Best validation loss: %.5f",
+        best_val_loss/val_count
+    )
 else:
     # Load pretrained autoencoder
     if os.path.exists('autoencoder.pth.tar'):
@@ -1184,10 +1266,12 @@ else:
         checkpoint = torch.load('autoencoder.pth.tar')
         autoencoder.load_state_dict(checkpoint['state_dict'])
         print("✓ Loaded autoencoder checkpoint")
+        logger.info("Loaded autoencoder checkpoint from autoencoder.pth.tar")
     else:
         print("⚠ Warning: No autoencoder checkpoint found at 'autoencoder.pth.tar'")
         print("  Please train the autoencoder first with --train-autoencoder")
         print("  Continuing with randomly initialized weights...")
+        logger.warning("Autoencoder checkpoint not found. Using randomly initialized weights.")
 
 autoencoder.eval()
 print("\n" + "="*80)
@@ -1196,6 +1280,7 @@ print("="*80)
 print(f"Test set size: {len(test_loader)} batches")
 print("Computing graph similarity metrics (Weisfeiler-Lehman kernel)...")
 print("="*80 + "\n")
+logger.info("Evaluating autoencoder on %d test batches", len(test_loader))
 eval_autoencoder(test_loader, autoencoder, args.n_max_nodes, device)
 
 
@@ -1258,6 +1343,10 @@ if args.train_denoiser:
     print(f"Training batches: {len(train_loader)}")
     print(f"Validation batches: {len(val_loader)}")
     print(f"{'='*60}\n")
+    logger.info(
+        "Starting diffusion training for %d epochs (%d train batches, %d val batches)",
+        args.epochs_denoise, len(train_loader), len(val_loader)
+    )
     
     best_val_loss = np.inf
     for epoch in range(1, args.epochs_denoise+1):
@@ -1342,9 +1431,15 @@ if args.train_denoiser:
         
         if epoch % 5 == 0:
             dt_t = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            train_total = train_loss_all/train_count if train_count > 0 else float('nan')
+            val_total = val_loss_all/val_count if val_count > 0 else float('nan')
+            logger.info(
+                "%s Denoiser Epoch: %04d, Train Loss: %.5f, Val Loss: %.5f",
+                dt_t, epoch, train_total, val_total
+            )
             print(f"\n{'-'*80}")
             print('{} Epoch: {:04d}, Train Loss: {:.5f}, Val Loss: {:.5f}'.format(
-                dt_t, epoch, train_loss_all/train_count, val_loss_all/val_count
+                dt_t, epoch, train_total, val_total
             ))
             print(f"{'-'*80}\n")
 
@@ -1356,14 +1451,27 @@ if args.train_denoiser:
                 'state_dict': denoise_model.state_dict(),
                 'optimizer' : optimizer.state_dict(),
             }, 'denoise_model.pth.tar')
+            logger.info(
+                "Saved best diffusion checkpoint at epoch %04d with val_loss=%.5f",
+                epoch, val_loss_all/val_count if val_count > 0 else float('nan')
+            )
             print(f"✓ Saved best diffusion model checkpoint (val_loss={val_loss_all/val_count:.5f}) [NEW BEST!]")
         else:
+            logger.info(
+                "Diffusion validation loss %.5f did not improve on best %.5f",
+                val_loss_all/val_count if val_count > 0 else float('nan'),
+                best_val_loss/val_count if val_count > 0 else float('nan')
+            )
             print(f"  Val loss ({val_loss_all/val_count:.5f}) did not improve from best ({best_val_loss/val_count:.5f})")
     
     print(f"\n{'='*60}")
     print(f"Diffusion Model Training Complete!")
     print(f"Best validation loss: {best_val_loss/val_count:.5f}")
     print(f"{'='*60}\n")
+    logger.info(
+        "Diffusion training complete. Best validation loss: %.5f",
+        best_val_loss/val_count if val_count > 0 else float('nan')
+    )
 else:
     # Load pretrained diffusion model
     if os.path.exists('denoise_model.pth.tar'):
@@ -1371,10 +1479,12 @@ else:
         checkpoint = torch.load('denoise_model.pth.tar')
         denoise_model.load_state_dict(checkpoint['state_dict'])
         print("✓ Loaded diffusion model checkpoint")
+        logger.info("Loaded diffusion checkpoint from denoise_model.pth.tar")
     else:
         print("⚠ Warning: No diffusion model checkpoint found at 'denoise_model.pth.tar'")
         print("  Please train the diffusion model first with --train-denoiser")
         print("  Continuing with randomly initialized weights...")
+        logger.warning("Diffusion checkpoint not found. Using randomly initialized weights.")
 
 denoise_model.eval()
 
@@ -1387,6 +1497,10 @@ print(f"  Test set size: {len(test_loader)} batches")
 print(f"  Diffusion timesteps: {args.timesteps}")
 print(f"  Latent dimension: {args.latent_dim}")
 print("="*80 + "\n")
+logger.info(
+    "Starting diffusion sampling on %d test batches (timesteps=%d, latent_dim=%d)",
+    len(test_loader), args.timesteps, args.latent_dim
+)
 
 ground_truth = []
 pred = []
@@ -1413,6 +1527,7 @@ for k, data in enumerate(tqdm(test_loader, desc='Processing test set',)):
 
 
 store_stats(ground_truth, pred, "y_stats.txt", "y_pred_stats.txt")
+logger.info("Saved generated statistics to y_stats.txt and y_pred_stats.txt")
 
 print("\n" + "="*80)
 print("Test Phase Complete!")
@@ -1443,9 +1558,17 @@ print("MSE for the samples in all features is equal to: "+str(mse_all))
 print("MAE for the samples in all features is equal to: "+str(mae_all))
 print("Symmetric Mean absolute Percentage Error for the samples for all features is equal to: "+str(norm_error_all*100))
 print("=" * 100)
+logger.info(
+    "Evaluation summary - MSE(all): %s, MAE(all): %s, sMAPE(all): %s",
+    mse_all, mae_all, norm_error_all*100
+)
 
 for i in range(len(mse)):
     print("MSE for the samples for the feature \""+str(id2feats[i])+"\" is equal to: "+str(mse[i]))
     print("MAE for the samples for the feature \""+str(id2feats[i])+"\" is equal to: "+str(mae[i]))
     print("Symmetric Mean absolute Percentage Error for the samples for the feature \""+str(id2feats[i])+"\" is equal to: "+str(norm_error[i]*100))
     print("=" * 100)
+    logger.info(
+        "Feature %s - MSE: %.6f, MAE: %.6f, sMAPE: %.6f",
+        id2feats[i], mse[i], mae[i], norm_error[i]*100
+    )
