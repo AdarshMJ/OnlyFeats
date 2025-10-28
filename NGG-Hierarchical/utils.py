@@ -1,5 +1,6 @@
 import os
 import math
+import logging
 import networkx as nx
 import numpy as np
 import scipy as sp
@@ -25,52 +26,120 @@ def construct_nx_from_adj(adj):
 
 
 def eval_autoencoder(test_loader, autoencoder, n_max_nodes, device):
-    Gs = []
-    Gs_rec = []
+    """Evaluate autoencoder reconstructions with WL kernel while handling empty graphs."""
+    logger = logging.getLogger("ngg")
     sims = []
-    for data in test_loader:
-        Gs = []
-        Gs_rec = []
+    skipped = 0
 
+    for batch_idx, data in enumerate(test_loader):
         data = data.to(device)
-        
-        # Call autoencoder with appropriate arguments
-        if hasattr(autoencoder, 'encoder') and hasattr(autoencoder.encoder, 'stat_transforms'):
-            # Hierarchical VAE needs graph_stats
+        batch = data.batch if hasattr(data, 'batch') else None
+        if batch is None:
+            graph_sizes = torch.tensor([data.A.size(0)], dtype=torch.long)
+        else:
+            graph_sizes = torch.bincount(batch.cpu())
+
+        # Forward pass (hierarchical models require stats)
+        if hasattr(autoencoder, 'encoder') and hasattr(getattr(autoencoder.encoder, 'stat_transforms', None), '__iter__'):
             output = autoencoder(data, graph_stats=data.stats if hasattr(data, 'stats') else None)
         else:
-            # Standard VAE
             output = autoencoder(data)
-        
-        # Handle hierarchical VAE output (dict) vs standard output (tensor)
+
+        # Prepare predicted adjacencies and labels per graph
+        predicted_labels_per_graph = []
         if isinstance(output, dict):
-            adj_rec = output['adjacency']  # [batch, n_max_nodes, n_max_nodes]
+            adj_full = output['adjacency']
+            labels_all = output.get('labels')
+            adj_blocks = []
+            node_ptr = 0
+            for n_nodes in graph_sizes.tolist():
+                node_slice = slice(node_ptr, node_ptr + n_nodes)
+                adj_block = adj_full[node_slice, node_slice]
+                padded = adj_block.new_zeros((n_max_nodes, n_max_nodes))
+                padded[:n_nodes, :n_nodes] = adj_block
+                adj_blocks.append(padded)
+                if labels_all is not None:
+                    predicted_labels_per_graph.append(labels_all[node_slice].detach().cpu())
+                else:
+                    predicted_labels_per_graph.append(None)
+                node_ptr += n_nodes
+            adj_rec = torch.stack(adj_blocks, dim=0)
         else:
             adj_rec = output
-        
-        adj_rec[adj_rec>0.5] = 1
-        adj_rec[adj_rec<=0.5] = 0
+            predicted_labels_per_graph = [None] * graph_sizes.numel()
 
-        for i in range(data.A.size(0)):
-            Gs.append(construct_nx_from_adj(data.A[i,:,:].detach().cpu().numpy()))
-            Gs_rec.append(construct_nx_from_adj(adj_rec[i,:,:].detach().cpu().numpy()))
+        adj_rec = adj_rec.detach().cpu()
+        adj_rec = torch.where(adj_rec > 0.5, torch.ones_like(adj_rec), torch.zeros_like(adj_rec))
 
-        for G in Gs:
-            for node in G.nodes():
-                G.nodes[node]['label'] = 1
+        # Ground-truth labels per graph (if available)
+        gt_labels_per_graph = []
+        if hasattr(data, 'y') and data.y is not None:
+            labels_all = data.y.detach().cpu()
+            node_ptr = 0
+            for n_nodes in graph_sizes.tolist():
+                gt_labels_per_graph.append(labels_all[node_ptr:node_ptr + n_nodes].clone())
+                node_ptr += n_nodes
+        else:
+            gt_labels_per_graph = [None] * graph_sizes.numel()
 
-        for G in Gs_rec:
-            for node in G.nodes():
-                G.nodes[node]['label'] = 1
+        for i, n_nodes in enumerate(graph_sizes.tolist()):
+            # Slice ground-truth adjacency
+            adj_true = data.A[i, :n_nodes, :n_nodes].detach().cpu().numpy()
+            adj_pred = adj_rec[i, :n_nodes, :n_nodes].numpy()
 
-        Gs_pairs = [graph_from_networkx([Gs[i], Gs_rec[i]], node_labels_tag='label') for i in range(len(Gs))]
-        wl_kernel = WeisfeilerLehman(n_iter=3, normalize=True, base_graph_kernel=VertexHistogram)
+            G_true = construct_nx_from_adj(adj_true)
+            G_pred = construct_nx_from_adj(adj_pred)
 
-        for i in range(len(Gs_pairs)):
-            K = wl_kernel.fit_transform(Gs_pairs[i])
-            sims.append(K[0,1])
+            # Assign labels (ground truth vs predicted fallback)
+            gt_labels = gt_labels_per_graph[i]
+            pred_labels = predicted_labels_per_graph[i] if predicted_labels_per_graph[i] is not None else gt_labels
 
-    print('Average similarity:', np.mean(sims))
+            def _assign_labels(graph, labels_tensor):
+                if labels_tensor is None or graph.number_of_nodes() == 0:
+                    for node in graph.nodes():
+                        graph.nodes[node]['label'] = 0
+                    return
+                labels_np = labels_tensor.cpu().numpy()
+                for node in graph.nodes():
+                    idx = int(node)
+                    if 0 <= idx < len(labels_np):
+                        graph.nodes[node]['label'] = int(labels_np[idx])
+                    else:
+                        graph.nodes[node]['label'] = 0
+
+            _assign_labels(G_true, gt_labels)
+            _assign_labels(G_pred, pred_labels)
+
+            if G_true.number_of_nodes() == 0 or G_pred.number_of_nodes() == 0:
+                skipped += 1
+                logger.warning(
+                    "Skipping WL evaluation for batch %d graph %d due to empty graph (GT nodes=%d, Pred nodes=%d)",
+                    batch_idx, i, G_true.number_of_nodes(), G_pred.number_of_nodes()
+                )
+                continue
+
+            try:
+                graphs_pair = graph_from_networkx([G_true, G_pred], node_labels_tag='label')
+                wl_kernel = WeisfeilerLehman(n_iter=3, normalize=True, base_graph_kernel=VertexHistogram)
+                K = wl_kernel.fit_transform(graphs_pair)
+                sims.append(K[0, 1])
+            except Exception as exc:
+                skipped += 1
+                logger.warning(
+                    "Failed WL kernel computation for batch %d graph %d: %s",
+                    batch_idx, i, exc
+                )
+
+    if sims:
+        avg_sim = float(np.mean(sims))
+        print('Average similarity:', avg_sim)
+        logger.info(
+            "Average WL similarity: %.6f computed over %d graph pairs (skipped %d)",
+            avg_sim, len(sims), skipped
+        )
+    else:
+        print('Average similarity: nan')
+        logger.warning("No valid WL similarities computed (skipped %d graph pairs)", skipped)
 
 
 def handle_nan(x):
