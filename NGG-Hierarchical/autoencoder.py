@@ -576,69 +576,90 @@ class HierarchicalVAE(nn.Module):
             beta: KL weight
             target_label_hom: target label homophily from stats (optional)
         """
-        num_nodes = outputs['z'].shape[0]
         device = outputs['z'].device
-        
-        # 1. Label loss (cross-entropy)
+        batch = data.batch
+        graph_sizes = torch.bincount(batch)
+        batch_size = graph_sizes.numel()
+
+        label_loss = torch.tensor(0.0, device=device)
+        struct_loss = torch.tensor(0.0, device=device)
+        feat_loss = torch.tensor(0.0, device=device)
+        hom_loss = torch.tensor(0.0, device=device)
+        kl_loss = torch.tensor(0.0, device=device)
+
+        # Per-node quantities for label and KL losses
         if hasattr(data, 'y') and data.y is not None:
-            label_loss = F.cross_entropy(outputs['label_logits'], data.y.long())
+            per_node_ce = F.cross_entropy(
+                outputs['label_logits'], data.y.long(), reduction='none'
+            )
         else:
-            label_loss = torch.tensor(0.0, device=device)
-        
-        # 2. Structure loss (BCE)
-        # Get actual adjacency from data
-        if hasattr(data, 'A') and data.A is not None:
-            # data.A is [batch, n_max_nodes, n_max_nodes], need to extract per graph
-            batch_size = int(data.batch.max().item() + 1)
-            struct_loss = torch.tensor(0.0, device=device)
-            
-            # Process each graph in batch
-            node_idx = 0
-            for b in range(batch_size):
-                mask = data.batch == b
-                n_nodes_in_graph = mask.sum().item()
-                
-                # Extract this graph's adjacency
-                adj_true = data.A[b, :n_nodes_in_graph, :n_nodes_in_graph].squeeze()
-                adj_pred = outputs['adjacency'][node_idx:node_idx+n_nodes_in_graph, 
-                                                node_idx:node_idx+n_nodes_in_graph]
-                
+            per_node_ce = None
+
+        kl_per_element = -0.5 * (
+            1 + outputs['logvar'] - outputs['mu'].pow(2) - outputs['logvar'].exp()
+        )  # [num_nodes, latent_dim]
+        kl_per_node = kl_per_element.sum(dim=1)  # [num_nodes]
+
+        # Iterate over graphs in the batch
+        node_ptr = 0
+        for graph_idx, n_nodes in enumerate(graph_sizes.tolist()):
+            node_slice = slice(node_ptr, node_ptr + n_nodes)
+
+            # Label loss per graph
+            if per_node_ce is not None and n_nodes > 0:
+                label_loss = label_loss + per_node_ce[node_slice].mean()
+
+            # Structure reconstruction
+            if hasattr(data, 'A') and data.A is not None and n_nodes > 0:
+                adj_true = data.A[graph_idx, :n_nodes, :n_nodes]
+                adj_pred = outputs['adjacency'][node_slice, node_slice]
+
                 pos_edges = adj_true.sum()
                 neg_edges = adj_true.numel() - pos_edges
                 pos_weight = (neg_edges / (pos_edges + 1e-6)).clamp(min=1.0)
 
                 bce = F.binary_cross_entropy(adj_pred, adj_true, reduction='none')
                 weights = torch.where(adj_true > 0.5, pos_weight, 1.0)
-                struct_loss += (weights * bce).sum()
-                node_idx += n_nodes_in_graph
-            
-            struct_loss = struct_loss / num_nodes
-        else:
-            struct_loss = torch.tensor(0.0, device=device)
-        
-        # 3. Feature loss (MSE with true features)
-        if hasattr(data, 'raw_node_features') and data.raw_node_features is not None:
-            feat_loss = F.mse_loss(outputs['features'], data.raw_node_features)
-        elif hasattr(data, 'x') and data.x is not None:
-            # Fallback to reconstructing input features
-            feat_loss = F.mse_loss(outputs['features'], data.x)
-        else:
-            feat_loss = torch.tensor(0.0, device=device)
-        
-        # 4. Label homophily loss (explicit encouragement)
-        if hasattr(data, 'y') and data.y is not None and target_label_hom is not None:
-            hom_loss = self.label_homophily_loss(
-                outputs['adjacency'], data.y, target_label_hom, data.batch
-            )
-        else:
-            hom_loss = torch.tensor(0.0, device=device)
-        
-        # 5. KL divergence (VAE regularization)
-        # KL divergence per element, then average over all dimensions
-        kl_per_element = -0.5 * (1 + outputs['logvar'] - outputs['mu'].pow(2) - outputs['logvar'].exp())
-        kl_loss = torch.mean(kl_per_element)  # Average over all nodes and latent dims
-        
-        # Total loss
+                weighted_sum = (weights * bce).sum()
+                norm = weights.sum().clamp(min=1e-6)
+                struct_loss = struct_loss + weighted_sum / norm
+
+                # Feature reconstruction (per-node average)
+                if hasattr(data, 'raw_node_features') and data.raw_node_features is not None:
+                    target_feats = data.raw_node_features[node_slice]
+                elif hasattr(data, 'x') and data.x is not None:
+                    target_feats = data.x[node_slice]
+                else:
+                    target_feats = None
+
+                if target_feats is not None:
+                    feat_mse = F.mse_loss(
+                        outputs['features'][node_slice], target_feats, reduction='mean'
+                    )
+                    feat_loss = feat_loss + feat_mse
+
+                # Label homophily supervision (match ground-truth graph)
+                if hasattr(data, 'y') and data.y is not None:
+                    labels_graph = data.y[node_slice]
+                    target_hom = self._compute_label_homophily_from_adj(adj_true, labels_graph)
+                    hom_loss = hom_loss + self._label_homophily_loss_single(
+                        adj_pred, labels_graph, target_hom
+                    )
+
+            # KL divergence per graph
+            kl_loss_graph = kl_per_node[node_slice].mean()
+            kl_loss = kl_loss + kl_loss_graph
+
+            node_ptr += n_nodes
+
+        # Normalise by number of graphs
+        denom = torch.tensor(float(batch_size), device=device).clamp(min=1.0)
+        label_loss = label_loss / denom
+        struct_loss = struct_loss / denom
+        feat_loss = feat_loss / denom
+        hom_loss = hom_loss / denom
+        kl_loss = kl_loss / denom
+
         total_loss = (
             lambda_label * label_loss +
             lambda_struct * struct_loss +
@@ -646,7 +667,7 @@ class HierarchicalVAE(nn.Module):
             lambda_hom * hom_loss +
             beta * kl_loss
         )
-        
+
         return {
             'total_loss': total_loss,
             'label_loss': label_loss,
@@ -655,6 +676,29 @@ class HierarchicalVAE(nn.Module):
             'hom_loss': hom_loss,
             'kl_loss': kl_loss
         }
+
+    def _compute_label_homophily_from_adj(self, adj_matrix, labels):
+        if labels is None or adj_matrix.sum() == 0:
+            return adj_matrix.new_tensor(0.0)
+        n_nodes = adj_matrix.size(0)
+        same_label = (labels.unsqueeze(1) == labels.unsqueeze(0)).float()
+        mask = (1 - torch.eye(n_nodes, device=adj_matrix.device))
+        edge_weights = adj_matrix * mask
+        total_weight = edge_weights.sum().clamp(min=1e-6)
+        same_weight = (edge_weights * same_label).sum()
+        return same_weight / total_weight
+
+    def _label_homophily_loss_single(self, adj_pred, labels, target_hom):
+        if labels is None or adj_pred.size(0) <= 1:
+            return adj_pred.new_tensor(0.0)
+        n_nodes = adj_pred.size(0)
+        same_label = (labels.unsqueeze(1) == labels.unsqueeze(0)).float()
+        mask = (1 - torch.eye(n_nodes, device=adj_pred.device))
+        edge_weights = adj_pred * mask
+        total_weight = edge_weights.sum().clamp(min=1e-6)
+        same_weight = (edge_weights * same_label).sum()
+        actual_hom = same_weight / total_weight
+        return (actual_hom - target_hom.detach()).pow(2)
     
     def label_homophily_loss(self, adj_pred, y_true, target_hom, batch):
         """
@@ -666,42 +710,24 @@ class HierarchicalVAE(nn.Module):
             target_hom: scalar or [batch_size] target homophily values
             batch: [num_nodes] batch assignment
         """
-        batch_size = int(batch.max().item() + 1)
+        graph_sizes = torch.bincount(batch)
+        batch_size = graph_sizes.numel()
         device = adj_pred.device
-        
+
         if not isinstance(target_hom, torch.Tensor):
             target_hom = torch.tensor([target_hom] * batch_size, device=device)
         elif target_hom.dim() == 0:
             target_hom = target_hom.unsqueeze(0).expand(batch_size)
-        
+
         hom_loss = torch.tensor(0.0, device=device)
-        
-        # Compute homophily per graph
+
         node_idx = 0
-        for b in range(batch_size):
-            mask = batch == b
-            n_nodes = mask.sum().item()
-            
-            # Extract this graph's data
+        for b, n_nodes in enumerate(graph_sizes.tolist()):
             adj_b = adj_pred[node_idx:node_idx+n_nodes, node_idx:node_idx+n_nodes]
             y_b = y_true[node_idx:node_idx+n_nodes]
-            
-            # Compute actual homophily
-            y_expanded_i = y_b.unsqueeze(1).expand(n_nodes, n_nodes)
-            y_expanded_j = y_b.unsqueeze(0).expand(n_nodes, n_nodes)
-            same_label = (y_expanded_i == y_expanded_j).float()
-            
-            # Weight by edge probabilities without hard thresholds to keep gradients
-            edge_weights = adj_b * (1 - torch.eye(n_nodes, device=device))
-            total_weight = edge_weights.sum().clamp(min=1e-8)
-            same_label_weight = (edge_weights * same_label).sum()
-            actual_hom = same_label_weight / total_weight
-            
-            # MSE between actual and target
-            hom_loss += (actual_hom - target_hom[b])**2
-            
+            hom_loss = hom_loss + self._label_homophily_loss_single(adj_b, y_b, target_hom[b])
             node_idx += n_nodes
-        
+
         return hom_loss / batch_size
     
     def generate_from_latents(self, z_nodes, apply_structure_bias=True):
