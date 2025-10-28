@@ -697,6 +697,10 @@ parser.add_argument('--train-autoencoder', action='store_true', default=False,
                     help='Train the autoencoder (if False, will load from checkpoint)')
 parser.add_argument('--train-denoiser', action='store_true', default=False,
                     help='Train the denoiser (if False, will load from checkpoint)')
+parser.add_argument('--early-stop-patience-autoencoder', type=int, default=20,
+                    help='Number of epochs with no validation loss improvement before autoencoder training stops early')
+parser.add_argument('--early-stop-patience-denoiser', type=int, default=20,
+                    help='Number of epochs with no validation loss improvement before diffusion training stops early')
 parser.add_argument('--n-properties', type=int, default=15)
 parser.add_argument('--dim-condition', type=int, default=128)
 # Homophily configuration
@@ -1038,6 +1042,10 @@ if args.train_autoencoder:
     )
     
     best_val_loss = np.inf
+    epochs_since_improvement = 0
+    stopped_early = False
+    epochs_since_improvement = 0
+    stopped_early = False
     for epoch in range(1, args.epochs_autoencoder+1):
         epoch_start = datetime.now()
         autoencoder.train()
@@ -1244,21 +1252,42 @@ if args.train_autoencoder:
                 epoch, val_loss_all/val_count
             )
             print(f"✓ Saved best autoencoder checkpoint (val_loss={val_loss_all/val_count:.5f}) [NEW BEST!]")
+            epochs_since_improvement = 0
         else:
             logger.info(
                 "Validation loss %.5f did not improve on best %.5f",
                 val_loss_all/val_count, best_val_loss/val_count
             )
             print(f"  Val loss ({val_loss_all/val_count:.5f}) did not improve from best ({best_val_loss/val_count:.5f})")
+            epochs_since_improvement += 1
+            if epochs_since_improvement >= args.early_stop_patience_autoencoder:
+                logger.info(
+                    "Autoencoder early stopping triggered after %d epochs without improvement",
+                    epochs_since_improvement
+                )
+                print(f"Early stopping autoencoder training after {epochs_since_improvement} epochs without validation improvement.")
+                stopped_early = True
+                break
     
+    best_val_metric = best_val_loss/val_count if val_count > 0 else float('nan')
+
     print(f"\n{'='*60}")
-    print(f"Autoencoder Training Complete!")
-    print(f"Best validation loss: {best_val_loss/val_count:.5f}")
+    if stopped_early:
+        print("Autoencoder Training Stopped Early!")
+    else:
+        print("Autoencoder Training Complete!")
+    print(f"Best validation loss: {best_val_metric:.5f}")
     print(f"{'='*60}\n")
-    logger.info(
-        "Autoencoder training complete. Best validation loss: %.5f",
-        best_val_loss/val_count
-    )
+    if stopped_early:
+        logger.info(
+            "Autoencoder training stopped early. Best validation loss: %.5f",
+            best_val_metric
+        )
+    else:
+        logger.info(
+            "Autoencoder training complete. Best validation loss: %.5f",
+            best_val_metric
+        )
 else:
     # Load pretrained autoencoder
     if os.path.exists('autoencoder.pth.tar'):
@@ -1456,6 +1485,7 @@ if args.train_denoiser:
                 epoch, val_loss_all/val_count if val_count > 0 else float('nan')
             )
             print(f"✓ Saved best diffusion model checkpoint (val_loss={val_loss_all/val_count:.5f}) [NEW BEST!]")
+            epochs_since_improvement = 0
         else:
             logger.info(
                 "Diffusion validation loss %.5f did not improve on best %.5f",
@@ -1463,15 +1493,35 @@ if args.train_denoiser:
                 best_val_loss/val_count if val_count > 0 else float('nan')
             )
             print(f"  Val loss ({val_loss_all/val_count:.5f}) did not improve from best ({best_val_loss/val_count:.5f})")
+            epochs_since_improvement += 1
+            if epochs_since_improvement >= args.early_stop_patience_denoiser:
+                logger.info(
+                    "Diffusion model early stopping triggered after %d epochs without improvement",
+                    epochs_since_improvement
+                )
+                print(f"Early stopping diffusion model training after {epochs_since_improvement} epochs without validation improvement.")
+                stopped_early = True
+                break
     
+    best_val_metric = best_val_loss/val_count if val_count > 0 else float('nan')
+
     print(f"\n{'='*60}")
-    print(f"Diffusion Model Training Complete!")
-    print(f"Best validation loss: {best_val_loss/val_count:.5f}")
+    if stopped_early:
+        print("Diffusion Model Training Stopped Early!")
+    else:
+        print("Diffusion Model Training Complete!")
+    print(f"Best validation loss: {best_val_metric:.5f}")
     print(f"{'='*60}\n")
-    logger.info(
-        "Diffusion training complete. Best validation loss: %.5f",
-        best_val_loss/val_count if val_count > 0 else float('nan')
-    )
+    if stopped_early:
+        logger.info(
+            "Diffusion training stopped early. Best validation loss: %.5f",
+            best_val_metric
+        )
+    else:
+        logger.info(
+            "Diffusion training complete. Best validation loss: %.5f",
+            best_val_metric
+        )
 else:
     # Load pretrained diffusion model
     if os.path.exists('denoise_model.pth.tar'):
@@ -1509,21 +1559,74 @@ pred = []
 for k, data in enumerate(tqdm(test_loader, desc='Processing test set',)):
     data = data.to(device)
     stat = data.stats
-    bs = stat.size(0)
-    samples = sample(denoise_model, data.stats, latent_dim=args.latent_dim, timesteps=args.timesteps, betas=betas, batch_size=bs)
-    x_sample = samples[-1]
-    adj = autoencoder.decode_mu(x_sample)
-    stat_d = torch.reshape(stat, (-1, args.n_properties))
+    stat_d = stat.view(-1, args.n_properties)
 
-    for i in range(stat.size(0)):
-        #adj = autoencoder.decode_mu(samples[random_index])
-        # Gs_generated.append(construct_nx_from_adj(adj[i,:,:].detach().cpu().numpy()))
-        stat_x = stat_d[i]
+    if args.use_hierarchical:
+        batch = data.batch if hasattr(data, 'batch') else None
+        if batch is None:
+            graph_sizes = torch.tensor([stat.size(0)], dtype=torch.long)
+        else:
+            graph_sizes = torch.bincount(batch.cpu())
 
-        Gs_generated = construct_nx_from_adj(adj[i,:,:].detach().cpu().numpy())
-        stat_x = stat_x.detach().cpu().numpy()
-        ground_truth.append(stat_x)
-        pred.append(gen_stats(Gs_generated))
+        for i, n_nodes in enumerate(graph_sizes.tolist()):
+            if n_nodes == 0:
+                logger.warning(
+                    "Skipping graph %d in batch %d during diffusion sampling because it contains zero nodes",
+                    i, k
+                )
+                continue
+            cond = stat_d[i].unsqueeze(0)
+            cond = torch.nan_to_num(cond, nan=-100.0)
+            samples = sample_node_level(
+                denoise_model,
+                cond,
+                num_nodes=n_nodes,
+                latent_dim=args.latent_dim,
+                timesteps=args.timesteps,
+                betas=betas
+            )
+            node_latents = samples[-1]
+            generated = autoencoder.generate_from_latents(node_latents)
+            adj_generated = generated['adjacency']
+            adj_generated = torch.where(adj_generated > 0.5, torch.ones_like(adj_generated), torch.zeros_like(adj_generated))
+
+            adj_padded = torch.zeros((args.n_max_nodes, args.n_max_nodes), device=adj_generated.device)
+            adj_padded[:n_nodes, :n_nodes] = adj_generated
+
+            Gs_generated = construct_nx_from_adj(adj_padded.detach().cpu().numpy())
+            stat_x = torch.nan_to_num(stat_d[i], nan=-100.0).detach().cpu().numpy()
+            if Gs_generated.number_of_nodes() == 0:
+                logger.warning(
+                    "Skipping generated graph stats for batch %d graph %d due to empty graph",
+                    k, i
+                )
+                continue
+            ground_truth.append(stat_x)
+            pred.append(gen_stats(Gs_generated))
+    else:
+        bs = stat.size(0)
+        samples = sample(
+            denoise_model,
+            data.stats,
+            latent_dim=args.latent_dim,
+            timesteps=args.timesteps,
+            betas=betas,
+            batch_size=bs
+        )
+        x_sample = samples[-1]
+        adj = autoencoder.decode_mu(x_sample)
+
+        for i in range(stat.size(0)):
+            stat_x = torch.nan_to_num(stat_d[i], nan=-100.0).detach().cpu().numpy()
+            Gs_generated = construct_nx_from_adj(adj[i, :, :].detach().cpu().numpy())
+            if Gs_generated.number_of_nodes() == 0:
+                logger.warning(
+                    "Skipping generated graph stats for batch %d graph %d due to empty graph",
+                    k, i
+                )
+                continue
+            ground_truth.append(stat_x)
+            pred.append(gen_stats(Gs_generated))
 
 
 store_stats(ground_truth, pred, "y_stats.txt", "y_pred_stats.txt")
