@@ -1,0 +1,1085 @@
+2025-10-28 13:02:13,711 - INFO - Logging to logs/hierarchical-20251028-130213.log
+2025-10-28 13:02:13,711 - INFO - Arguments: {
+  "lr": 0.001,
+  "dropout": 0.0,
+  "batch_size": 256,
+  "data_path": "data/labelhomophilyall_graphs.pkl",
+  "graphs_dir": "generated data/graphs",
+  "stats_dir": "generated data/stats",
+  "use_cached_stats": true,
+  "recompute_stats": false,
+  "teacher_decoder_path": "teacherfeature/best_model.pth",
+  "teacher_type": "feature_vae",
+  "train_teacher_if_missing": true,
+  "teacher_epochs": 100,
+  "epochs_autoencoder": 100,
+  "hidden_dim_encoder": 32,
+  "hidden_dim_decoder": 64,
+  "latent_dim": 32,
+  "n_max_nodes": 100,
+  "n_layers_encoder": 2,
+  "n_layers_decoder": 3,
+  "spectral_emb_dim": 10,
+  "variational_autoencoder": true,
+  "epochs_denoise": 100,
+  "timesteps": 500,
+  "hidden_dim_denoise": 512,
+  "n_layers_denoise": 3,
+  "train_autoencoder": false,
+  "train_denoiser": false,
+  "early_stop_patience_autoencoder": 20,
+  "early_stop_patience_denoiser": 20,
+  "n_properties": 16,
+  "dim_condition": 128,
+  "homophily_type": "label",
+  "use_hierarchical": true,
+  "num_classes": 3,
+  "feat_dim": 32,
+  "teacher_latent_dim": 512,
+  "lambda_label": 1.0,
+  "lambda_struct": 1.0,
+  "lambda_feat": 0.5,
+  "lambda_hom": 2.0
+}
+2025-10-28 13:02:20,170 - INFO - Loaded dataset with 7000 graphs using data path data/labelhomophilyall_graphs.pkl
+2025-10-28 13:02:20,377 - INFO - Dataset split sizes - train: 5600, val: 700, test: 700, batch size: 256
+2025-10-28 13:02:21,325 - INFO - Teacher decoder loaded from teacherfeature/best_model.pth
+2025-10-28 13:02:21,344 - INFO - Loaded autoencoder checkpoint from autoencoder.pth.tar
+2025-10-28 13:02:21,344 - INFO - Evaluating autoencoder on 3 test batches
+2025-10-28 13:02:22,125 - WARNING - Skipping WL evaluation for batch 0 graph 0 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,127 - WARNING - Skipping WL evaluation for batch 0 graph 1 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,128 - WARNING - Skipping WL evaluation for batch 0 graph 2 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,130 - WARNING - Skipping WL evaluation for batch 0 graph 3 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,131 - WARNING - Skipping WL evaluation for batch 0 graph 4 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,132 - WARNING - Skipping WL evaluation for batch 0 graph 5 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,134 - WARNING - Skipping WL evaluation for batch 0 graph 6 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,135 - WARNING - Skipping WL evaluation for batch 0 graph 7 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,136 - WARNING - Skipping WL evaluation for batch 0 graph 8 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,138 - WARNING - Skipping WL evaluation for batch 0 graph 9 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,139 - WARNING - Skipping WL evaluation for batch 0 graph 10 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,141 - WARNING - Skipping WL evaluation for batch 0 graph 11 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,142 - WARNING - Skipping WL evaluation for batch 0 graph 12 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,143 - WARNING - Skipping WL evaluation for batch 0 graph 13 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,145 - WARNING - Skipping WL evaluation for batch 0 graph 14 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,146 - WARNING - Skipping WL evaluation for batch 0 graph 15 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,147 - WARNING - Skipping WL evaluation for batch 0 graph 16 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,148 - WARNING - Skipping WL evaluation for batch 0 graph 17 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,150 - WARNING - Skipping WL evaluation for batch 0 graph 18 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,151 - WARNING - Skipping WL evaluation for batch 0 graph 19 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,152 - WARNING - Skipping WL evaluation for batch 0 graph 20 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,154 - WARNING - Skipping WL evaluation for batch 0 graph 21 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,155 - WARNING - Skipping WL evaluation for batch 0 graph 22 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,157 - WARNING - Skipping WL evaluation for batch 0 graph 23 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,158 - WARNING - Skipping WL evaluation for batch 0 graph 24 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,159 - WARNING - Skipping WL evaluation for batch 0 graph 25 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,161 - WARNING - Skipping WL evaluation for batch 0 graph 26 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,162 - WARNING - Skipping WL evaluation for batch 0 graph 27 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,163 - WARNING - Skipping WL evaluation for batch 0 graph 28 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,165 - WARNING - Skipping WL evaluation for batch 0 graph 29 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,166 - WARNING - Skipping WL evaluation for batch 0 graph 30 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,167 - WARNING - Skipping WL evaluation for batch 0 graph 31 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,168 - WARNING - Skipping WL evaluation for batch 0 graph 32 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,170 - WARNING - Skipping WL evaluation for batch 0 graph 33 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,171 - WARNING - Skipping WL evaluation for batch 0 graph 34 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,173 - WARNING - Skipping WL evaluation for batch 0 graph 35 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,174 - WARNING - Skipping WL evaluation for batch 0 graph 36 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,175 - WARNING - Skipping WL evaluation for batch 0 graph 37 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,176 - WARNING - Skipping WL evaluation for batch 0 graph 38 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,177 - WARNING - Skipping WL evaluation for batch 0 graph 39 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,179 - WARNING - Skipping WL evaluation for batch 0 graph 40 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,180 - WARNING - Skipping WL evaluation for batch 0 graph 41 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,181 - WARNING - Skipping WL evaluation for batch 0 graph 42 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,182 - WARNING - Skipping WL evaluation for batch 0 graph 43 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,184 - WARNING - Skipping WL evaluation for batch 0 graph 44 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,185 - WARNING - Skipping WL evaluation for batch 0 graph 45 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,187 - WARNING - Skipping WL evaluation for batch 0 graph 46 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,188 - WARNING - Skipping WL evaluation for batch 0 graph 47 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,189 - WARNING - Skipping WL evaluation for batch 0 graph 48 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,190 - WARNING - Skipping WL evaluation for batch 0 graph 49 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,191 - WARNING - Skipping WL evaluation for batch 0 graph 50 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,192 - WARNING - Skipping WL evaluation for batch 0 graph 51 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,193 - WARNING - Skipping WL evaluation for batch 0 graph 52 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,194 - WARNING - Skipping WL evaluation for batch 0 graph 53 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,196 - WARNING - Skipping WL evaluation for batch 0 graph 54 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,197 - WARNING - Skipping WL evaluation for batch 0 graph 55 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,198 - WARNING - Skipping WL evaluation for batch 0 graph 56 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,200 - WARNING - Skipping WL evaluation for batch 0 graph 57 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,201 - WARNING - Skipping WL evaluation for batch 0 graph 58 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,202 - WARNING - Skipping WL evaluation for batch 0 graph 59 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,204 - WARNING - Skipping WL evaluation for batch 0 graph 60 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,205 - WARNING - Skipping WL evaluation for batch 0 graph 61 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,206 - WARNING - Skipping WL evaluation for batch 0 graph 62 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:22,207 - WARNING - Skipping WL evaluation for batch 0 graph 63 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,209 - WARNING - Skipping WL evaluation for batch 0 graph 64 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,210 - WARNING - Skipping WL evaluation for batch 0 graph 65 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,211 - WARNING - Skipping WL evaluation for batch 0 graph 66 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,212 - WARNING - Skipping WL evaluation for batch 0 graph 67 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,213 - WARNING - Skipping WL evaluation for batch 0 graph 68 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,215 - WARNING - Skipping WL evaluation for batch 0 graph 69 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,216 - WARNING - Skipping WL evaluation for batch 0 graph 70 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,217 - WARNING - Skipping WL evaluation for batch 0 graph 71 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,218 - WARNING - Skipping WL evaluation for batch 0 graph 72 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,220 - WARNING - Skipping WL evaluation for batch 0 graph 73 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,221 - WARNING - Skipping WL evaluation for batch 0 graph 74 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:22,222 - WARNING - Skipping WL evaluation for batch 0 graph 75 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,223 - WARNING - Skipping WL evaluation for batch 0 graph 76 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,224 - WARNING - Skipping WL evaluation for batch 0 graph 77 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,225 - WARNING - Skipping WL evaluation for batch 0 graph 78 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,227 - WARNING - Skipping WL evaluation for batch 0 graph 79 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,228 - WARNING - Skipping WL evaluation for batch 0 graph 80 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,230 - WARNING - Skipping WL evaluation for batch 0 graph 81 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,231 - WARNING - Skipping WL evaluation for batch 0 graph 82 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,232 - WARNING - Skipping WL evaluation for batch 0 graph 83 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,234 - WARNING - Skipping WL evaluation for batch 0 graph 84 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,235 - WARNING - Skipping WL evaluation for batch 0 graph 85 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,236 - WARNING - Skipping WL evaluation for batch 0 graph 86 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,237 - WARNING - Skipping WL evaluation for batch 0 graph 87 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,238 - WARNING - Skipping WL evaluation for batch 0 graph 88 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,239 - WARNING - Skipping WL evaluation for batch 0 graph 89 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:22,241 - WARNING - Skipping WL evaluation for batch 0 graph 90 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,242 - WARNING - Skipping WL evaluation for batch 0 graph 91 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,243 - WARNING - Skipping WL evaluation for batch 0 graph 92 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,244 - WARNING - Skipping WL evaluation for batch 0 graph 93 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,246 - WARNING - Skipping WL evaluation for batch 0 graph 94 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,247 - WARNING - Skipping WL evaluation for batch 0 graph 95 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,248 - WARNING - Skipping WL evaluation for batch 0 graph 96 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,249 - WARNING - Skipping WL evaluation for batch 0 graph 97 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,251 - WARNING - Skipping WL evaluation for batch 0 graph 98 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,252 - WARNING - Skipping WL evaluation for batch 0 graph 99 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,253 - WARNING - Skipping WL evaluation for batch 0 graph 100 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,254 - WARNING - Skipping WL evaluation for batch 0 graph 101 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,255 - WARNING - Skipping WL evaluation for batch 0 graph 102 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,257 - WARNING - Skipping WL evaluation for batch 0 graph 103 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,258 - WARNING - Skipping WL evaluation for batch 0 graph 104 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,260 - WARNING - Skipping WL evaluation for batch 0 graph 105 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,261 - WARNING - Skipping WL evaluation for batch 0 graph 106 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:22,262 - WARNING - Skipping WL evaluation for batch 0 graph 107 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,263 - WARNING - Skipping WL evaluation for batch 0 graph 108 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,264 - WARNING - Skipping WL evaluation for batch 0 graph 109 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,265 - WARNING - Skipping WL evaluation for batch 0 graph 110 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,266 - WARNING - Skipping WL evaluation for batch 0 graph 111 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,268 - WARNING - Skipping WL evaluation for batch 0 graph 112 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,269 - WARNING - Skipping WL evaluation for batch 0 graph 113 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,270 - WARNING - Skipping WL evaluation for batch 0 graph 114 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,271 - WARNING - Skipping WL evaluation for batch 0 graph 115 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,272 - WARNING - Skipping WL evaluation for batch 0 graph 116 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,274 - WARNING - Skipping WL evaluation for batch 0 graph 117 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,275 - WARNING - Skipping WL evaluation for batch 0 graph 118 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,276 - WARNING - Skipping WL evaluation for batch 0 graph 119 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,278 - WARNING - Skipping WL evaluation for batch 0 graph 120 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,279 - WARNING - Skipping WL evaluation for batch 0 graph 121 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,280 - WARNING - Skipping WL evaluation for batch 0 graph 122 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,281 - WARNING - Skipping WL evaluation for batch 0 graph 123 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,283 - WARNING - Skipping WL evaluation for batch 0 graph 124 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,284 - WARNING - Skipping WL evaluation for batch 0 graph 125 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,285 - WARNING - Skipping WL evaluation for batch 0 graph 126 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,286 - WARNING - Skipping WL evaluation for batch 0 graph 127 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,288 - WARNING - Skipping WL evaluation for batch 0 graph 128 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,289 - WARNING - Skipping WL evaluation for batch 0 graph 129 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,290 - WARNING - Skipping WL evaluation for batch 0 graph 130 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,292 - WARNING - Skipping WL evaluation for batch 0 graph 131 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,293 - WARNING - Skipping WL evaluation for batch 0 graph 132 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,294 - WARNING - Skipping WL evaluation for batch 0 graph 133 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,295 - WARNING - Skipping WL evaluation for batch 0 graph 134 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:22,296 - WARNING - Skipping WL evaluation for batch 0 graph 135 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,297 - WARNING - Skipping WL evaluation for batch 0 graph 136 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,299 - WARNING - Skipping WL evaluation for batch 0 graph 137 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,300 - WARNING - Skipping WL evaluation for batch 0 graph 138 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,301 - WARNING - Skipping WL evaluation for batch 0 graph 139 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,302 - WARNING - Skipping WL evaluation for batch 0 graph 140 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,304 - WARNING - Skipping WL evaluation for batch 0 graph 141 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,305 - WARNING - Skipping WL evaluation for batch 0 graph 142 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,307 - WARNING - Skipping WL evaluation for batch 0 graph 143 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,308 - WARNING - Skipping WL evaluation for batch 0 graph 144 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,309 - WARNING - Skipping WL evaluation for batch 0 graph 145 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,310 - WARNING - Skipping WL evaluation for batch 0 graph 146 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,311 - WARNING - Skipping WL evaluation for batch 0 graph 147 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,313 - WARNING - Skipping WL evaluation for batch 0 graph 148 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,314 - WARNING - Skipping WL evaluation for batch 0 graph 149 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,315 - WARNING - Skipping WL evaluation for batch 0 graph 150 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,316 - WARNING - Skipping WL evaluation for batch 0 graph 151 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,317 - WARNING - Skipping WL evaluation for batch 0 graph 152 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,319 - WARNING - Skipping WL evaluation for batch 0 graph 153 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,320 - WARNING - Skipping WL evaluation for batch 0 graph 154 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,321 - WARNING - Skipping WL evaluation for batch 0 graph 155 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,322 - WARNING - Skipping WL evaluation for batch 0 graph 156 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,323 - WARNING - Skipping WL evaluation for batch 0 graph 157 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,324 - WARNING - Skipping WL evaluation for batch 0 graph 158 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,326 - WARNING - Skipping WL evaluation for batch 0 graph 159 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,327 - WARNING - Skipping WL evaluation for batch 0 graph 160 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,328 - WARNING - Skipping WL evaluation for batch 0 graph 161 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,329 - WARNING - Skipping WL evaluation for batch 0 graph 162 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,330 - WARNING - Skipping WL evaluation for batch 0 graph 163 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,331 - WARNING - Skipping WL evaluation for batch 0 graph 164 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,333 - WARNING - Skipping WL evaluation for batch 0 graph 165 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,334 - WARNING - Skipping WL evaluation for batch 0 graph 166 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,336 - WARNING - Skipping WL evaluation for batch 0 graph 167 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,337 - WARNING - Skipping WL evaluation for batch 0 graph 168 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,338 - WARNING - Skipping WL evaluation for batch 0 graph 169 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:22,339 - WARNING - Skipping WL evaluation for batch 0 graph 170 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,340 - WARNING - Skipping WL evaluation for batch 0 graph 171 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,342 - WARNING - Skipping WL evaluation for batch 0 graph 172 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,343 - WARNING - Skipping WL evaluation for batch 0 graph 173 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,344 - WARNING - Skipping WL evaluation for batch 0 graph 174 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,345 - WARNING - Skipping WL evaluation for batch 0 graph 175 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,346 - WARNING - Skipping WL evaluation for batch 0 graph 176 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,348 - WARNING - Skipping WL evaluation for batch 0 graph 177 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,349 - WARNING - Skipping WL evaluation for batch 0 graph 178 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,350 - WARNING - Skipping WL evaluation for batch 0 graph 179 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,351 - WARNING - Skipping WL evaluation for batch 0 graph 180 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,353 - WARNING - Skipping WL evaluation for batch 0 graph 181 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:22,354 - WARNING - Skipping WL evaluation for batch 0 graph 182 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,355 - WARNING - Skipping WL evaluation for batch 0 graph 183 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,356 - WARNING - Skipping WL evaluation for batch 0 graph 184 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,357 - WARNING - Skipping WL evaluation for batch 0 graph 185 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,358 - WARNING - Skipping WL evaluation for batch 0 graph 186 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,360 - WARNING - Skipping WL evaluation for batch 0 graph 187 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,361 - WARNING - Skipping WL evaluation for batch 0 graph 188 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,363 - WARNING - Skipping WL evaluation for batch 0 graph 189 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,364 - WARNING - Skipping WL evaluation for batch 0 graph 190 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,365 - WARNING - Skipping WL evaluation for batch 0 graph 191 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,366 - WARNING - Skipping WL evaluation for batch 0 graph 192 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,367 - WARNING - Skipping WL evaluation for batch 0 graph 193 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,369 - WARNING - Skipping WL evaluation for batch 0 graph 194 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,370 - WARNING - Skipping WL evaluation for batch 0 graph 195 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,371 - WARNING - Skipping WL evaluation for batch 0 graph 196 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,372 - WARNING - Skipping WL evaluation for batch 0 graph 197 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,373 - WARNING - Skipping WL evaluation for batch 0 graph 198 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,374 - WARNING - Skipping WL evaluation for batch 0 graph 199 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,376 - WARNING - Skipping WL evaluation for batch 0 graph 200 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,377 - WARNING - Skipping WL evaluation for batch 0 graph 201 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,379 - WARNING - Skipping WL evaluation for batch 0 graph 202 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,380 - WARNING - Skipping WL evaluation for batch 0 graph 203 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,381 - WARNING - Skipping WL evaluation for batch 0 graph 204 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,382 - WARNING - Skipping WL evaluation for batch 0 graph 205 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,384 - WARNING - Skipping WL evaluation for batch 0 graph 206 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,385 - WARNING - Skipping WL evaluation for batch 0 graph 207 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,386 - WARNING - Skipping WL evaluation for batch 0 graph 208 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,387 - WARNING - Skipping WL evaluation for batch 0 graph 209 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,389 - WARNING - Skipping WL evaluation for batch 0 graph 210 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,390 - WARNING - Skipping WL evaluation for batch 0 graph 211 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,391 - WARNING - Skipping WL evaluation for batch 0 graph 212 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,393 - WARNING - Skipping WL evaluation for batch 0 graph 213 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,394 - WARNING - Skipping WL evaluation for batch 0 graph 214 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,396 - WARNING - Skipping WL evaluation for batch 0 graph 215 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,397 - WARNING - Skipping WL evaluation for batch 0 graph 216 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,398 - WARNING - Skipping WL evaluation for batch 0 graph 217 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,399 - WARNING - Skipping WL evaluation for batch 0 graph 218 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,400 - WARNING - Skipping WL evaluation for batch 0 graph 219 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,401 - WARNING - Skipping WL evaluation for batch 0 graph 220 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,402 - WARNING - Skipping WL evaluation for batch 0 graph 221 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,404 - WARNING - Skipping WL evaluation for batch 0 graph 222 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,405 - WARNING - Skipping WL evaluation for batch 0 graph 223 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,406 - WARNING - Skipping WL evaluation for batch 0 graph 224 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,407 - WARNING - Skipping WL evaluation for batch 0 graph 225 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,409 - WARNING - Skipping WL evaluation for batch 0 graph 226 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,410 - WARNING - Skipping WL evaluation for batch 0 graph 227 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,411 - WARNING - Skipping WL evaluation for batch 0 graph 228 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,412 - WARNING - Skipping WL evaluation for batch 0 graph 229 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,413 - WARNING - Skipping WL evaluation for batch 0 graph 230 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,415 - WARNING - Skipping WL evaluation for batch 0 graph 231 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,416 - WARNING - Skipping WL evaluation for batch 0 graph 232 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,417 - WARNING - Skipping WL evaluation for batch 0 graph 233 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,418 - WARNING - Skipping WL evaluation for batch 0 graph 234 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,420 - WARNING - Skipping WL evaluation for batch 0 graph 235 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,421 - WARNING - Skipping WL evaluation for batch 0 graph 236 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,422 - WARNING - Skipping WL evaluation for batch 0 graph 237 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,423 - WARNING - Skipping WL evaluation for batch 0 graph 238 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,425 - WARNING - Skipping WL evaluation for batch 0 graph 239 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,426 - WARNING - Skipping WL evaluation for batch 0 graph 240 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,427 - WARNING - Skipping WL evaluation for batch 0 graph 241 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,428 - WARNING - Skipping WL evaluation for batch 0 graph 242 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,430 - WARNING - Skipping WL evaluation for batch 0 graph 243 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,431 - WARNING - Skipping WL evaluation for batch 0 graph 244 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,432 - WARNING - Skipping WL evaluation for batch 0 graph 245 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,433 - WARNING - Skipping WL evaluation for batch 0 graph 246 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,434 - WARNING - Skipping WL evaluation for batch 0 graph 247 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,435 - WARNING - Skipping WL evaluation for batch 0 graph 248 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,437 - WARNING - Skipping WL evaluation for batch 0 graph 249 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,438 - WARNING - Skipping WL evaluation for batch 0 graph 250 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,440 - WARNING - Skipping WL evaluation for batch 0 graph 251 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,441 - WARNING - Skipping WL evaluation for batch 0 graph 252 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,442 - WARNING - Skipping WL evaluation for batch 0 graph 253 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,443 - WARNING - Skipping WL evaluation for batch 0 graph 254 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,444 - WARNING - Skipping WL evaluation for batch 0 graph 255 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:22,679 - WARNING - Skipping WL evaluation for batch 1 graph 0 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,681 - WARNING - Skipping WL evaluation for batch 1 graph 1 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,682 - WARNING - Skipping WL evaluation for batch 1 graph 2 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,683 - WARNING - Skipping WL evaluation for batch 1 graph 3 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,685 - WARNING - Skipping WL evaluation for batch 1 graph 4 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,687 - WARNING - Skipping WL evaluation for batch 1 graph 5 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,689 - WARNING - Skipping WL evaluation for batch 1 graph 6 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,690 - WARNING - Skipping WL evaluation for batch 1 graph 7 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,691 - WARNING - Skipping WL evaluation for batch 1 graph 8 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,693 - WARNING - Skipping WL evaluation for batch 1 graph 9 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,694 - WARNING - Skipping WL evaluation for batch 1 graph 10 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,695 - WARNING - Skipping WL evaluation for batch 1 graph 11 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,696 - WARNING - Skipping WL evaluation for batch 1 graph 12 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:22,698 - WARNING - Skipping WL evaluation for batch 1 graph 13 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,699 - WARNING - Skipping WL evaluation for batch 1 graph 14 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,700 - WARNING - Skipping WL evaluation for batch 1 graph 15 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,702 - WARNING - Skipping WL evaluation for batch 1 graph 16 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,703 - WARNING - Skipping WL evaluation for batch 1 graph 17 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:22,705 - WARNING - Skipping WL evaluation for batch 1 graph 18 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,706 - WARNING - Skipping WL evaluation for batch 1 graph 19 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,708 - WARNING - Skipping WL evaluation for batch 1 graph 20 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,709 - WARNING - Skipping WL evaluation for batch 1 graph 21 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,710 - WARNING - Skipping WL evaluation for batch 1 graph 22 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,711 - WARNING - Skipping WL evaluation for batch 1 graph 23 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,713 - WARNING - Skipping WL evaluation for batch 1 graph 24 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,714 - WARNING - Skipping WL evaluation for batch 1 graph 25 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,715 - WARNING - Skipping WL evaluation for batch 1 graph 26 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,716 - WARNING - Skipping WL evaluation for batch 1 graph 27 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,718 - WARNING - Skipping WL evaluation for batch 1 graph 28 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,719 - WARNING - Skipping WL evaluation for batch 1 graph 29 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,721 - WARNING - Skipping WL evaluation for batch 1 graph 30 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,722 - WARNING - Skipping WL evaluation for batch 1 graph 31 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,723 - WARNING - Skipping WL evaluation for batch 1 graph 32 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,724 - WARNING - Skipping WL evaluation for batch 1 graph 33 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,726 - WARNING - Skipping WL evaluation for batch 1 graph 34 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,727 - WARNING - Skipping WL evaluation for batch 1 graph 35 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,728 - WARNING - Skipping WL evaluation for batch 1 graph 36 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,729 - WARNING - Skipping WL evaluation for batch 1 graph 37 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,731 - WARNING - Skipping WL evaluation for batch 1 graph 38 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,732 - WARNING - Skipping WL evaluation for batch 1 graph 39 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,733 - WARNING - Skipping WL evaluation for batch 1 graph 40 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,734 - WARNING - Skipping WL evaluation for batch 1 graph 41 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,736 - WARNING - Skipping WL evaluation for batch 1 graph 42 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,737 - WARNING - Skipping WL evaluation for batch 1 graph 43 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,739 - WARNING - Skipping WL evaluation for batch 1 graph 44 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,740 - WARNING - Skipping WL evaluation for batch 1 graph 45 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,741 - WARNING - Skipping WL evaluation for batch 1 graph 46 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,742 - WARNING - Skipping WL evaluation for batch 1 graph 47 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,743 - WARNING - Skipping WL evaluation for batch 1 graph 48 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,745 - WARNING - Skipping WL evaluation for batch 1 graph 49 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,746 - WARNING - Skipping WL evaluation for batch 1 graph 50 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,747 - WARNING - Skipping WL evaluation for batch 1 graph 51 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,748 - WARNING - Skipping WL evaluation for batch 1 graph 52 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,749 - WARNING - Skipping WL evaluation for batch 1 graph 53 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,751 - WARNING - Skipping WL evaluation for batch 1 graph 54 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,752 - WARNING - Skipping WL evaluation for batch 1 graph 55 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,753 - WARNING - Skipping WL evaluation for batch 1 graph 56 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,755 - WARNING - Skipping WL evaluation for batch 1 graph 57 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,756 - WARNING - Skipping WL evaluation for batch 1 graph 58 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,757 - WARNING - Skipping WL evaluation for batch 1 graph 59 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,758 - WARNING - Skipping WL evaluation for batch 1 graph 60 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,760 - WARNING - Skipping WL evaluation for batch 1 graph 61 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,761 - WARNING - Skipping WL evaluation for batch 1 graph 62 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,762 - WARNING - Skipping WL evaluation for batch 1 graph 63 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,763 - WARNING - Skipping WL evaluation for batch 1 graph 64 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,764 - WARNING - Skipping WL evaluation for batch 1 graph 65 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,766 - WARNING - Skipping WL evaluation for batch 1 graph 66 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,767 - WARNING - Skipping WL evaluation for batch 1 graph 67 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,768 - WARNING - Skipping WL evaluation for batch 1 graph 68 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,769 - WARNING - Skipping WL evaluation for batch 1 graph 69 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,771 - WARNING - Skipping WL evaluation for batch 1 graph 70 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,772 - WARNING - Skipping WL evaluation for batch 1 graph 71 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,773 - WARNING - Skipping WL evaluation for batch 1 graph 72 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,774 - WARNING - Skipping WL evaluation for batch 1 graph 73 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:22,775 - WARNING - Skipping WL evaluation for batch 1 graph 74 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,776 - WARNING - Skipping WL evaluation for batch 1 graph 75 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,778 - WARNING - Skipping WL evaluation for batch 1 graph 76 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,779 - WARNING - Skipping WL evaluation for batch 1 graph 77 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,781 - WARNING - Skipping WL evaluation for batch 1 graph 78 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,782 - WARNING - Skipping WL evaluation for batch 1 graph 79 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,783 - WARNING - Skipping WL evaluation for batch 1 graph 80 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,784 - WARNING - Skipping WL evaluation for batch 1 graph 81 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,786 - WARNING - Skipping WL evaluation for batch 1 graph 82 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,787 - WARNING - Skipping WL evaluation for batch 1 graph 83 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,788 - WARNING - Skipping WL evaluation for batch 1 graph 84 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,789 - WARNING - Skipping WL evaluation for batch 1 graph 85 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,790 - WARNING - Skipping WL evaluation for batch 1 graph 86 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,791 - WARNING - Skipping WL evaluation for batch 1 graph 87 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,793 - WARNING - Skipping WL evaluation for batch 1 graph 88 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:22,794 - WARNING - Skipping WL evaluation for batch 1 graph 89 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,795 - WARNING - Skipping WL evaluation for batch 1 graph 90 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,796 - WARNING - Skipping WL evaluation for batch 1 graph 91 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:22,798 - WARNING - Skipping WL evaluation for batch 1 graph 92 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,799 - WARNING - Skipping WL evaluation for batch 1 graph 93 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,800 - WARNING - Skipping WL evaluation for batch 1 graph 94 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,801 - WARNING - Skipping WL evaluation for batch 1 graph 95 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,802 - WARNING - Skipping WL evaluation for batch 1 graph 96 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,804 - WARNING - Skipping WL evaluation for batch 1 graph 97 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,805 - WARNING - Skipping WL evaluation for batch 1 graph 98 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,806 - WARNING - Skipping WL evaluation for batch 1 graph 99 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,807 - WARNING - Skipping WL evaluation for batch 1 graph 100 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,809 - WARNING - Skipping WL evaluation for batch 1 graph 101 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,810 - WARNING - Skipping WL evaluation for batch 1 graph 102 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,811 - WARNING - Skipping WL evaluation for batch 1 graph 103 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,813 - WARNING - Skipping WL evaluation for batch 1 graph 104 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,814 - WARNING - Skipping WL evaluation for batch 1 graph 105 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,815 - WARNING - Skipping WL evaluation for batch 1 graph 106 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,816 - WARNING - Skipping WL evaluation for batch 1 graph 107 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,817 - WARNING - Skipping WL evaluation for batch 1 graph 108 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,818 - WARNING - Skipping WL evaluation for batch 1 graph 109 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,820 - WARNING - Skipping WL evaluation for batch 1 graph 110 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,821 - WARNING - Skipping WL evaluation for batch 1 graph 111 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,822 - WARNING - Skipping WL evaluation for batch 1 graph 112 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,823 - WARNING - Skipping WL evaluation for batch 1 graph 113 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,824 - WARNING - Skipping WL evaluation for batch 1 graph 114 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,826 - WARNING - Skipping WL evaluation for batch 1 graph 115 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,827 - WARNING - Skipping WL evaluation for batch 1 graph 116 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,828 - WARNING - Skipping WL evaluation for batch 1 graph 117 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,829 - WARNING - Skipping WL evaluation for batch 1 graph 118 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,830 - WARNING - Skipping WL evaluation for batch 1 graph 119 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,832 - WARNING - Skipping WL evaluation for batch 1 graph 120 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,833 - WARNING - Skipping WL evaluation for batch 1 graph 121 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,834 - WARNING - Skipping WL evaluation for batch 1 graph 122 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,835 - WARNING - Skipping WL evaluation for batch 1 graph 123 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,837 - WARNING - Skipping WL evaluation for batch 1 graph 124 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,838 - WARNING - Skipping WL evaluation for batch 1 graph 125 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,839 - WARNING - Skipping WL evaluation for batch 1 graph 126 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,840 - WARNING - Skipping WL evaluation for batch 1 graph 127 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,842 - WARNING - Skipping WL evaluation for batch 1 graph 128 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,843 - WARNING - Skipping WL evaluation for batch 1 graph 129 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,844 - WARNING - Skipping WL evaluation for batch 1 graph 130 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,845 - WARNING - Skipping WL evaluation for batch 1 graph 131 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,846 - WARNING - Skipping WL evaluation for batch 1 graph 132 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,848 - WARNING - Skipping WL evaluation for batch 1 graph 133 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,849 - WARNING - Skipping WL evaluation for batch 1 graph 134 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,850 - WARNING - Skipping WL evaluation for batch 1 graph 135 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,851 - WARNING - Skipping WL evaluation for batch 1 graph 136 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,852 - WARNING - Skipping WL evaluation for batch 1 graph 137 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,854 - WARNING - Skipping WL evaluation for batch 1 graph 138 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,855 - WARNING - Skipping WL evaluation for batch 1 graph 139 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,857 - WARNING - Skipping WL evaluation for batch 1 graph 140 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,858 - WARNING - Skipping WL evaluation for batch 1 graph 141 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,859 - WARNING - Skipping WL evaluation for batch 1 graph 142 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,860 - WARNING - Skipping WL evaluation for batch 1 graph 143 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,862 - WARNING - Skipping WL evaluation for batch 1 graph 144 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,863 - WARNING - Skipping WL evaluation for batch 1 graph 145 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,864 - WARNING - Skipping WL evaluation for batch 1 graph 146 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,865 - WARNING - Skipping WL evaluation for batch 1 graph 147 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,866 - WARNING - Skipping WL evaluation for batch 1 graph 148 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,867 - WARNING - Skipping WL evaluation for batch 1 graph 149 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,869 - WARNING - Skipping WL evaluation for batch 1 graph 150 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,870 - WARNING - Skipping WL evaluation for batch 1 graph 151 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,871 - WARNING - Skipping WL evaluation for batch 1 graph 152 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,873 - WARNING - Skipping WL evaluation for batch 1 graph 153 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,874 - WARNING - Skipping WL evaluation for batch 1 graph 154 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,875 - WARNING - Skipping WL evaluation for batch 1 graph 155 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,876 - WARNING - Skipping WL evaluation for batch 1 graph 156 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,878 - WARNING - Skipping WL evaluation for batch 1 graph 157 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,879 - WARNING - Skipping WL evaluation for batch 1 graph 158 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,880 - WARNING - Skipping WL evaluation for batch 1 graph 159 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,881 - WARNING - Skipping WL evaluation for batch 1 graph 160 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,882 - WARNING - Skipping WL evaluation for batch 1 graph 161 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,884 - WARNING - Skipping WL evaluation for batch 1 graph 162 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,885 - WARNING - Skipping WL evaluation for batch 1 graph 163 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,886 - WARNING - Skipping WL evaluation for batch 1 graph 164 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,887 - WARNING - Skipping WL evaluation for batch 1 graph 165 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,889 - WARNING - Skipping WL evaluation for batch 1 graph 166 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,890 - WARNING - Skipping WL evaluation for batch 1 graph 167 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,891 - WARNING - Skipping WL evaluation for batch 1 graph 168 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,893 - WARNING - Skipping WL evaluation for batch 1 graph 169 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,894 - WARNING - Skipping WL evaluation for batch 1 graph 170 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,895 - WARNING - Skipping WL evaluation for batch 1 graph 171 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,896 - WARNING - Skipping WL evaluation for batch 1 graph 172 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,897 - WARNING - Skipping WL evaluation for batch 1 graph 173 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,899 - WARNING - Skipping WL evaluation for batch 1 graph 174 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,900 - WARNING - Skipping WL evaluation for batch 1 graph 175 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:22,901 - WARNING - Skipping WL evaluation for batch 1 graph 176 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,902 - WARNING - Skipping WL evaluation for batch 1 graph 177 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,903 - WARNING - Skipping WL evaluation for batch 1 graph 178 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,905 - WARNING - Skipping WL evaluation for batch 1 graph 179 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,906 - WARNING - Skipping WL evaluation for batch 1 graph 180 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,907 - WARNING - Skipping WL evaluation for batch 1 graph 181 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,908 - WARNING - Skipping WL evaluation for batch 1 graph 182 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,910 - WARNING - Skipping WL evaluation for batch 1 graph 183 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,911 - WARNING - Skipping WL evaluation for batch 1 graph 184 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,912 - WARNING - Skipping WL evaluation for batch 1 graph 185 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,914 - WARNING - Skipping WL evaluation for batch 1 graph 186 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,915 - WARNING - Skipping WL evaluation for batch 1 graph 187 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,916 - WARNING - Skipping WL evaluation for batch 1 graph 188 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,917 - WARNING - Skipping WL evaluation for batch 1 graph 189 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,919 - WARNING - Skipping WL evaluation for batch 1 graph 190 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,920 - WARNING - Skipping WL evaluation for batch 1 graph 191 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,921 - WARNING - Skipping WL evaluation for batch 1 graph 192 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,922 - WARNING - Skipping WL evaluation for batch 1 graph 193 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,923 - WARNING - Skipping WL evaluation for batch 1 graph 194 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,924 - WARNING - Skipping WL evaluation for batch 1 graph 195 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,925 - WARNING - Skipping WL evaluation for batch 1 graph 196 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,927 - WARNING - Skipping WL evaluation for batch 1 graph 197 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,928 - WARNING - Skipping WL evaluation for batch 1 graph 198 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,929 - WARNING - Skipping WL evaluation for batch 1 graph 199 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,931 - WARNING - Skipping WL evaluation for batch 1 graph 200 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,932 - WARNING - Skipping WL evaluation for batch 1 graph 201 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,933 - WARNING - Skipping WL evaluation for batch 1 graph 202 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,934 - WARNING - Skipping WL evaluation for batch 1 graph 203 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,935 - WARNING - Skipping WL evaluation for batch 1 graph 204 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,937 - WARNING - Skipping WL evaluation for batch 1 graph 205 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,938 - WARNING - Skipping WL evaluation for batch 1 graph 206 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,939 - WARNING - Skipping WL evaluation for batch 1 graph 207 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,940 - WARNING - Skipping WL evaluation for batch 1 graph 208 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,941 - WARNING - Skipping WL evaluation for batch 1 graph 209 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,943 - WARNING - Skipping WL evaluation for batch 1 graph 210 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,944 - WARNING - Skipping WL evaluation for batch 1 graph 211 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,946 - WARNING - Skipping WL evaluation for batch 1 graph 212 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,947 - WARNING - Skipping WL evaluation for batch 1 graph 213 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,948 - WARNING - Skipping WL evaluation for batch 1 graph 214 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,949 - WARNING - Skipping WL evaluation for batch 1 graph 215 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,951 - WARNING - Skipping WL evaluation for batch 1 graph 216 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,952 - WARNING - Skipping WL evaluation for batch 1 graph 217 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,953 - WARNING - Skipping WL evaluation for batch 1 graph 218 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,954 - WARNING - Skipping WL evaluation for batch 1 graph 219 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,955 - WARNING - Skipping WL evaluation for batch 1 graph 220 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,957 - WARNING - Skipping WL evaluation for batch 1 graph 221 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,958 - WARNING - Skipping WL evaluation for batch 1 graph 222 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,960 - WARNING - Skipping WL evaluation for batch 1 graph 223 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,961 - WARNING - Skipping WL evaluation for batch 1 graph 224 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,962 - WARNING - Skipping WL evaluation for batch 1 graph 225 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,963 - WARNING - Skipping WL evaluation for batch 1 graph 226 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,964 - WARNING - Skipping WL evaluation for batch 1 graph 227 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,965 - WARNING - Skipping WL evaluation for batch 1 graph 228 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,967 - WARNING - Skipping WL evaluation for batch 1 graph 229 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,968 - WARNING - Skipping WL evaluation for batch 1 graph 230 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,969 - WARNING - Skipping WL evaluation for batch 1 graph 231 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,970 - WARNING - Skipping WL evaluation for batch 1 graph 232 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,972 - WARNING - Skipping WL evaluation for batch 1 graph 233 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,973 - WARNING - Skipping WL evaluation for batch 1 graph 234 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,974 - WARNING - Skipping WL evaluation for batch 1 graph 235 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,976 - WARNING - Skipping WL evaluation for batch 1 graph 236 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,977 - WARNING - Skipping WL evaluation for batch 1 graph 237 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,978 - WARNING - Skipping WL evaluation for batch 1 graph 238 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,979 - WARNING - Skipping WL evaluation for batch 1 graph 239 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,980 - WARNING - Skipping WL evaluation for batch 1 graph 240 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,982 - WARNING - Skipping WL evaluation for batch 1 graph 241 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,983 - WARNING - Skipping WL evaluation for batch 1 graph 242 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,984 - WARNING - Skipping WL evaluation for batch 1 graph 243 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,985 - WARNING - Skipping WL evaluation for batch 1 graph 244 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:22,986 - WARNING - Skipping WL evaluation for batch 1 graph 245 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,988 - WARNING - Skipping WL evaluation for batch 1 graph 246 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,989 - WARNING - Skipping WL evaluation for batch 1 graph 247 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,991 - WARNING - Skipping WL evaluation for batch 1 graph 248 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,992 - WARNING - Skipping WL evaluation for batch 1 graph 249 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,993 - WARNING - Skipping WL evaluation for batch 1 graph 250 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,994 - WARNING - Skipping WL evaluation for batch 1 graph 251 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,996 - WARNING - Skipping WL evaluation for batch 1 graph 252 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,997 - WARNING - Skipping WL evaluation for batch 1 graph 253 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:22,998 - WARNING - Skipping WL evaluation for batch 1 graph 254 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:22,999 - WARNING - Skipping WL evaluation for batch 1 graph 255 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,133 - WARNING - Skipping WL evaluation for batch 2 graph 0 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,134 - WARNING - Skipping WL evaluation for batch 2 graph 1 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,138 - WARNING - Skipping WL evaluation for batch 2 graph 2 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,139 - WARNING - Skipping WL evaluation for batch 2 graph 3 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,140 - WARNING - Skipping WL evaluation for batch 2 graph 4 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,142 - WARNING - Skipping WL evaluation for batch 2 graph 5 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,143 - WARNING - Skipping WL evaluation for batch 2 graph 6 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,144 - WARNING - Skipping WL evaluation for batch 2 graph 7 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,145 - WARNING - Skipping WL evaluation for batch 2 graph 8 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,146 - WARNING - Skipping WL evaluation for batch 2 graph 9 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,148 - WARNING - Skipping WL evaluation for batch 2 graph 10 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,149 - WARNING - Skipping WL evaluation for batch 2 graph 11 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,150 - WARNING - Skipping WL evaluation for batch 2 graph 12 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,152 - WARNING - Skipping WL evaluation for batch 2 graph 13 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,153 - WARNING - Skipping WL evaluation for batch 2 graph 14 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,155 - WARNING - Skipping WL evaluation for batch 2 graph 15 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,156 - WARNING - Skipping WL evaluation for batch 2 graph 16 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,157 - WARNING - Skipping WL evaluation for batch 2 graph 17 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,159 - WARNING - Skipping WL evaluation for batch 2 graph 18 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,160 - WARNING - Skipping WL evaluation for batch 2 graph 19 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,161 - WARNING - Skipping WL evaluation for batch 2 graph 20 due to empty graph (GT nodes=95, Pred nodes=0)
+2025-10-28 13:02:23,162 - WARNING - Skipping WL evaluation for batch 2 graph 21 due to empty graph (GT nodes=96, Pred nodes=0)
+2025-10-28 13:02:23,163 - WARNING - Skipping WL evaluation for batch 2 graph 22 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,165 - WARNING - Skipping WL evaluation for batch 2 graph 23 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,166 - WARNING - Skipping WL evaluation for batch 2 graph 24 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,167 - WARNING - Skipping WL evaluation for batch 2 graph 25 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,169 - WARNING - Skipping WL evaluation for batch 2 graph 26 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,170 - WARNING - Skipping WL evaluation for batch 2 graph 27 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,171 - WARNING - Skipping WL evaluation for batch 2 graph 28 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,173 - WARNING - Skipping WL evaluation for batch 2 graph 29 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:23,174 - WARNING - Skipping WL evaluation for batch 2 graph 30 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,175 - WARNING - Skipping WL evaluation for batch 2 graph 31 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,176 - WARNING - Skipping WL evaluation for batch 2 graph 32 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,177 - WARNING - Skipping WL evaluation for batch 2 graph 33 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,179 - WARNING - Skipping WL evaluation for batch 2 graph 34 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,180 - WARNING - Skipping WL evaluation for batch 2 graph 35 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,181 - WARNING - Skipping WL evaluation for batch 2 graph 36 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,182 - WARNING - Skipping WL evaluation for batch 2 graph 37 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,183 - WARNING - Skipping WL evaluation for batch 2 graph 38 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,185 - WARNING - Skipping WL evaluation for batch 2 graph 39 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,186 - WARNING - Skipping WL evaluation for batch 2 graph 40 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,187 - WARNING - Skipping WL evaluation for batch 2 graph 41 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,188 - WARNING - Skipping WL evaluation for batch 2 graph 42 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,190 - WARNING - Skipping WL evaluation for batch 2 graph 43 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,191 - WARNING - Skipping WL evaluation for batch 2 graph 44 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,192 - WARNING - Skipping WL evaluation for batch 2 graph 45 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,193 - WARNING - Skipping WL evaluation for batch 2 graph 46 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,194 - WARNING - Skipping WL evaluation for batch 2 graph 47 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,195 - WARNING - Skipping WL evaluation for batch 2 graph 48 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,196 - WARNING - Skipping WL evaluation for batch 2 graph 49 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,198 - WARNING - Skipping WL evaluation for batch 2 graph 50 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,199 - WARNING - Skipping WL evaluation for batch 2 graph 51 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,200 - WARNING - Skipping WL evaluation for batch 2 graph 52 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,201 - WARNING - Skipping WL evaluation for batch 2 graph 53 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,203 - WARNING - Skipping WL evaluation for batch 2 graph 54 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,204 - WARNING - Skipping WL evaluation for batch 2 graph 55 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,205 - WARNING - Skipping WL evaluation for batch 2 graph 56 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,206 - WARNING - Skipping WL evaluation for batch 2 graph 57 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,207 - WARNING - Skipping WL evaluation for batch 2 graph 58 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,208 - WARNING - Skipping WL evaluation for batch 2 graph 59 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,210 - WARNING - Skipping WL evaluation for batch 2 graph 60 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,211 - WARNING - Skipping WL evaluation for batch 2 graph 61 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,212 - WARNING - Skipping WL evaluation for batch 2 graph 62 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,213 - WARNING - Skipping WL evaluation for batch 2 graph 63 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,215 - WARNING - Skipping WL evaluation for batch 2 graph 64 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,216 - WARNING - Skipping WL evaluation for batch 2 graph 65 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,217 - WARNING - Skipping WL evaluation for batch 2 graph 66 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,218 - WARNING - Skipping WL evaluation for batch 2 graph 67 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,219 - WARNING - Skipping WL evaluation for batch 2 graph 68 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,220 - WARNING - Skipping WL evaluation for batch 2 graph 69 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,221 - WARNING - Skipping WL evaluation for batch 2 graph 70 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,222 - WARNING - Skipping WL evaluation for batch 2 graph 71 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,224 - WARNING - Skipping WL evaluation for batch 2 graph 72 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,225 - WARNING - Skipping WL evaluation for batch 2 graph 73 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,226 - WARNING - Skipping WL evaluation for batch 2 graph 74 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,228 - WARNING - Skipping WL evaluation for batch 2 graph 75 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,229 - WARNING - Skipping WL evaluation for batch 2 graph 76 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,230 - WARNING - Skipping WL evaluation for batch 2 graph 77 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,231 - WARNING - Skipping WL evaluation for batch 2 graph 78 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,232 - WARNING - Skipping WL evaluation for batch 2 graph 79 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,233 - WARNING - Skipping WL evaluation for batch 2 graph 80 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,235 - WARNING - Skipping WL evaluation for batch 2 graph 81 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,236 - WARNING - Skipping WL evaluation for batch 2 graph 82 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,237 - WARNING - Skipping WL evaluation for batch 2 graph 83 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,238 - WARNING - Skipping WL evaluation for batch 2 graph 84 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,239 - WARNING - Skipping WL evaluation for batch 2 graph 85 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,240 - WARNING - Skipping WL evaluation for batch 2 graph 86 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,242 - WARNING - Skipping WL evaluation for batch 2 graph 87 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,243 - WARNING - Skipping WL evaluation for batch 2 graph 88 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,244 - WARNING - Skipping WL evaluation for batch 2 graph 89 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,245 - WARNING - Skipping WL evaluation for batch 2 graph 90 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,247 - WARNING - Skipping WL evaluation for batch 2 graph 91 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,248 - WARNING - Skipping WL evaluation for batch 2 graph 92 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,249 - WARNING - Skipping WL evaluation for batch 2 graph 93 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,250 - WARNING - Skipping WL evaluation for batch 2 graph 94 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,251 - WARNING - Skipping WL evaluation for batch 2 graph 95 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,253 - WARNING - Skipping WL evaluation for batch 2 graph 96 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,254 - WARNING - Skipping WL evaluation for batch 2 graph 97 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:23,255 - WARNING - Skipping WL evaluation for batch 2 graph 98 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,257 - WARNING - Skipping WL evaluation for batch 2 graph 99 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,258 - WARNING - Skipping WL evaluation for batch 2 graph 100 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,259 - WARNING - Skipping WL evaluation for batch 2 graph 101 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,260 - WARNING - Skipping WL evaluation for batch 2 graph 102 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,261 - WARNING - Skipping WL evaluation for batch 2 graph 103 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:23,262 - WARNING - Skipping WL evaluation for batch 2 graph 104 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,264 - WARNING - Skipping WL evaluation for batch 2 graph 105 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,265 - WARNING - Skipping WL evaluation for batch 2 graph 106 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,266 - WARNING - Skipping WL evaluation for batch 2 graph 107 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,267 - WARNING - Skipping WL evaluation for batch 2 graph 108 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,269 - WARNING - Skipping WL evaluation for batch 2 graph 109 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,270 - WARNING - Skipping WL evaluation for batch 2 graph 110 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:23,272 - WARNING - Skipping WL evaluation for batch 2 graph 111 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,273 - WARNING - Skipping WL evaluation for batch 2 graph 112 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,274 - WARNING - Skipping WL evaluation for batch 2 graph 113 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,275 - WARNING - Skipping WL evaluation for batch 2 graph 114 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,276 - WARNING - Skipping WL evaluation for batch 2 graph 115 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,277 - WARNING - Skipping WL evaluation for batch 2 graph 116 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,278 - WARNING - Skipping WL evaluation for batch 2 graph 117 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,279 - WARNING - Skipping WL evaluation for batch 2 graph 118 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,281 - WARNING - Skipping WL evaluation for batch 2 graph 119 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,282 - WARNING - Skipping WL evaluation for batch 2 graph 120 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:23,283 - WARNING - Skipping WL evaluation for batch 2 graph 121 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,284 - WARNING - Skipping WL evaluation for batch 2 graph 122 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,286 - WARNING - Skipping WL evaluation for batch 2 graph 123 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,287 - WARNING - Skipping WL evaluation for batch 2 graph 124 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,288 - WARNING - Skipping WL evaluation for batch 2 graph 125 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,289 - WARNING - Skipping WL evaluation for batch 2 graph 126 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,290 - WARNING - Skipping WL evaluation for batch 2 graph 127 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,292 - WARNING - Skipping WL evaluation for batch 2 graph 128 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,293 - WARNING - Skipping WL evaluation for batch 2 graph 129 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,294 - WARNING - Skipping WL evaluation for batch 2 graph 130 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:23,295 - WARNING - Skipping WL evaluation for batch 2 graph 131 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,296 - WARNING - Skipping WL evaluation for batch 2 graph 132 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,297 - WARNING - Skipping WL evaluation for batch 2 graph 133 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,299 - WARNING - Skipping WL evaluation for batch 2 graph 134 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,300 - WARNING - Skipping WL evaluation for batch 2 graph 135 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,301 - WARNING - Skipping WL evaluation for batch 2 graph 136 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,303 - WARNING - Skipping WL evaluation for batch 2 graph 137 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,304 - WARNING - Skipping WL evaluation for batch 2 graph 138 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,305 - WARNING - Skipping WL evaluation for batch 2 graph 139 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,306 - WARNING - Skipping WL evaluation for batch 2 graph 140 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,308 - WARNING - Skipping WL evaluation for batch 2 graph 141 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,309 - WARNING - Skipping WL evaluation for batch 2 graph 142 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,310 - WARNING - Skipping WL evaluation for batch 2 graph 143 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,311 - WARNING - Skipping WL evaluation for batch 2 graph 144 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,312 - WARNING - Skipping WL evaluation for batch 2 graph 145 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,313 - WARNING - Skipping WL evaluation for batch 2 graph 146 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,315 - WARNING - Skipping WL evaluation for batch 2 graph 147 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,316 - WARNING - Skipping WL evaluation for batch 2 graph 148 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,317 - WARNING - Skipping WL evaluation for batch 2 graph 149 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,318 - WARNING - Skipping WL evaluation for batch 2 graph 150 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,319 - WARNING - Skipping WL evaluation for batch 2 graph 151 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,320 - WARNING - Skipping WL evaluation for batch 2 graph 152 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,322 - WARNING - Skipping WL evaluation for batch 2 graph 153 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,323 - WARNING - Skipping WL evaluation for batch 2 graph 154 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,324 - WARNING - Skipping WL evaluation for batch 2 graph 155 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,325 - WARNING - Skipping WL evaluation for batch 2 graph 156 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,327 - WARNING - Skipping WL evaluation for batch 2 graph 157 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,328 - WARNING - Skipping WL evaluation for batch 2 graph 158 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,329 - WARNING - Skipping WL evaluation for batch 2 graph 159 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,330 - WARNING - Skipping WL evaluation for batch 2 graph 160 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,332 - WARNING - Skipping WL evaluation for batch 2 graph 161 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,333 - WARNING - Skipping WL evaluation for batch 2 graph 162 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,334 - WARNING - Skipping WL evaluation for batch 2 graph 163 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,335 - WARNING - Skipping WL evaluation for batch 2 graph 164 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,336 - WARNING - Skipping WL evaluation for batch 2 graph 165 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,338 - WARNING - Skipping WL evaluation for batch 2 graph 166 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,339 - WARNING - Skipping WL evaluation for batch 2 graph 167 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,340 - WARNING - Skipping WL evaluation for batch 2 graph 168 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,341 - WARNING - Skipping WL evaluation for batch 2 graph 169 due to empty graph (GT nodes=96, Pred nodes=0)
+2025-10-28 13:02:23,342 - WARNING - Skipping WL evaluation for batch 2 graph 170 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,344 - WARNING - Skipping WL evaluation for batch 2 graph 171 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,345 - WARNING - Skipping WL evaluation for batch 2 graph 172 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,346 - WARNING - Skipping WL evaluation for batch 2 graph 173 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,348 - WARNING - Skipping WL evaluation for batch 2 graph 174 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,349 - WARNING - Skipping WL evaluation for batch 2 graph 175 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,350 - WARNING - Skipping WL evaluation for batch 2 graph 176 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,351 - WARNING - Skipping WL evaluation for batch 2 graph 177 due to empty graph (GT nodes=97, Pred nodes=0)
+2025-10-28 13:02:23,352 - WARNING - Skipping WL evaluation for batch 2 graph 178 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,353 - WARNING - Skipping WL evaluation for batch 2 graph 179 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,355 - WARNING - Skipping WL evaluation for batch 2 graph 180 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,356 - WARNING - Skipping WL evaluation for batch 2 graph 181 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,357 - WARNING - Skipping WL evaluation for batch 2 graph 182 due to empty graph (GT nodes=99, Pred nodes=0)
+2025-10-28 13:02:23,358 - WARNING - Skipping WL evaluation for batch 2 graph 183 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,360 - WARNING - Skipping WL evaluation for batch 2 graph 184 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,361 - WARNING - Skipping WL evaluation for batch 2 graph 185 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,362 - WARNING - Skipping WL evaluation for batch 2 graph 186 due to empty graph (GT nodes=100, Pred nodes=0)
+2025-10-28 13:02:23,363 - WARNING - Skipping WL evaluation for batch 2 graph 187 due to empty graph (GT nodes=98, Pred nodes=0)
+2025-10-28 13:02:23,363 - WARNING - No valid WL similarities computed (skipped 700 graph pairs)
+2025-10-28 13:02:23,380 - WARNING - Diffusion checkpoint not found. Using randomly initialized weights.
+2025-10-28 13:02:23,380 - INFO - Starting diffusion sampling on 3 test batches (timesteps=500, latent_dim=32)
+2025-10-28 13:02:23,872 - WARNING - Skipping generated graph stats for batch 0 graph 0 due to empty graph
+2025-10-28 13:02:24,286 - WARNING - Skipping generated graph stats for batch 0 graph 1 due to empty graph
+2025-10-28 13:02:24,701 - WARNING - Skipping generated graph stats for batch 0 graph 2 due to empty graph
+2025-10-28 13:02:25,120 - WARNING - Skipping generated graph stats for batch 0 graph 3 due to empty graph
+2025-10-28 13:02:25,543 - WARNING - Skipping generated graph stats for batch 0 graph 4 due to empty graph
+2025-10-28 13:02:25,962 - WARNING - Skipping generated graph stats for batch 0 graph 5 due to empty graph
+2025-10-28 13:02:26,380 - WARNING - Skipping generated graph stats for batch 0 graph 6 due to empty graph
+2025-10-28 13:02:26,798 - WARNING - Skipping generated graph stats for batch 0 graph 7 due to empty graph
+2025-10-28 13:02:27,216 - WARNING - Skipping generated graph stats for batch 0 graph 8 due to empty graph
+2025-10-28 13:02:27,637 - WARNING - Skipping generated graph stats for batch 0 graph 9 due to empty graph
+2025-10-28 13:02:28,056 - WARNING - Skipping generated graph stats for batch 0 graph 10 due to empty graph
+2025-10-28 13:02:28,474 - WARNING - Skipping generated graph stats for batch 0 graph 11 due to empty graph
+2025-10-28 13:02:28,892 - WARNING - Skipping generated graph stats for batch 0 graph 12 due to empty graph
+2025-10-28 13:02:29,332 - WARNING - Skipping generated graph stats for batch 0 graph 13 due to empty graph
+2025-10-28 13:02:29,749 - WARNING - Skipping generated graph stats for batch 0 graph 14 due to empty graph
+2025-10-28 13:02:30,169 - WARNING - Skipping generated graph stats for batch 0 graph 15 due to empty graph
+2025-10-28 13:02:30,588 - WARNING - Skipping generated graph stats for batch 0 graph 16 due to empty graph
+2025-10-28 13:02:31,007 - WARNING - Skipping generated graph stats for batch 0 graph 17 due to empty graph
+2025-10-28 13:02:31,433 - WARNING - Skipping generated graph stats for batch 0 graph 18 due to empty graph
+2025-10-28 13:02:31,852 - WARNING - Skipping generated graph stats for batch 0 graph 19 due to empty graph
+2025-10-28 13:02:32,271 - WARNING - Skipping generated graph stats for batch 0 graph 20 due to empty graph
+2025-10-28 13:02:32,690 - WARNING - Skipping generated graph stats for batch 0 graph 21 due to empty graph
+2025-10-28 13:02:33,105 - WARNING - Skipping generated graph stats for batch 0 graph 22 due to empty graph
+2025-10-28 13:02:33,518 - WARNING - Skipping generated graph stats for batch 0 graph 23 due to empty graph
+2025-10-28 13:02:33,931 - WARNING - Skipping generated graph stats for batch 0 graph 24 due to empty graph
+2025-10-28 13:02:34,351 - WARNING - Skipping generated graph stats for batch 0 graph 25 due to empty graph
+2025-10-28 13:02:34,770 - WARNING - Skipping generated graph stats for batch 0 graph 26 due to empty graph
+2025-10-28 13:02:35,188 - WARNING - Skipping generated graph stats for batch 0 graph 27 due to empty graph
+2025-10-28 13:02:35,613 - WARNING - Skipping generated graph stats for batch 0 graph 28 due to empty graph
+2025-10-28 13:02:36,032 - WARNING - Skipping generated graph stats for batch 0 graph 29 due to empty graph
+2025-10-28 13:02:36,450 - WARNING - Skipping generated graph stats for batch 0 graph 30 due to empty graph
+2025-10-28 13:02:36,868 - WARNING - Skipping generated graph stats for batch 0 graph 31 due to empty graph
+2025-10-28 13:02:37,286 - WARNING - Skipping generated graph stats for batch 0 graph 32 due to empty graph
+2025-10-28 13:02:37,707 - WARNING - Skipping generated graph stats for batch 0 graph 33 due to empty graph
+2025-10-28 13:02:38,126 - WARNING - Skipping generated graph stats for batch 0 graph 34 due to empty graph
+2025-10-28 13:02:38,545 - WARNING - Skipping generated graph stats for batch 0 graph 35 due to empty graph
+2025-10-28 13:02:38,963 - WARNING - Skipping generated graph stats for batch 0 graph 36 due to empty graph
+2025-10-28 13:02:39,382 - WARNING - Skipping generated graph stats for batch 0 graph 37 due to empty graph
+2025-10-28 13:02:39,801 - WARNING - Skipping generated graph stats for batch 0 graph 38 due to empty graph
+2025-10-28 13:02:40,222 - WARNING - Skipping generated graph stats for batch 0 graph 39 due to empty graph
+2025-10-28 13:02:40,641 - WARNING - Skipping generated graph stats for batch 0 graph 40 due to empty graph
+2025-10-28 13:02:41,060 - WARNING - Skipping generated graph stats for batch 0 graph 41 due to empty graph
+2025-10-28 13:02:41,479 - WARNING - Skipping generated graph stats for batch 0 graph 42 due to empty graph
+2025-10-28 13:02:41,898 - WARNING - Skipping generated graph stats for batch 0 graph 43 due to empty graph
+2025-10-28 13:02:42,319 - WARNING - Skipping generated graph stats for batch 0 graph 44 due to empty graph
+2025-10-28 13:02:42,738 - WARNING - Skipping generated graph stats for batch 0 graph 45 due to empty graph
+2025-10-28 13:02:43,156 - WARNING - Skipping generated graph stats for batch 0 graph 46 due to empty graph
+2025-10-28 13:02:43,575 - WARNING - Skipping generated graph stats for batch 0 graph 47 due to empty graph
+2025-10-28 13:02:43,999 - WARNING - Skipping generated graph stats for batch 0 graph 48 due to empty graph
+2025-10-28 13:02:44,444 - WARNING - Skipping generated graph stats for batch 0 graph 49 due to empty graph
+2025-10-28 13:02:44,862 - WARNING - Skipping generated graph stats for batch 0 graph 50 due to empty graph
+2025-10-28 13:02:45,280 - WARNING - Skipping generated graph stats for batch 0 graph 51 due to empty graph
+2025-10-28 13:02:45,699 - WARNING - Skipping generated graph stats for batch 0 graph 52 due to empty graph
+2025-10-28 13:02:46,117 - WARNING - Skipping generated graph stats for batch 0 graph 53 due to empty graph
+2025-10-28 13:02:46,535 - WARNING - Skipping generated graph stats for batch 0 graph 54 due to empty graph
+2025-10-28 13:02:46,956 - WARNING - Skipping generated graph stats for batch 0 graph 55 due to empty graph
+2025-10-28 13:02:47,373 - WARNING - Skipping generated graph stats for batch 0 graph 56 due to empty graph
+2025-10-28 13:02:47,791 - WARNING - Skipping generated graph stats for batch 0 graph 57 due to empty graph
+2025-10-28 13:02:48,211 - WARNING - Skipping generated graph stats for batch 0 graph 58 due to empty graph
+2025-10-28 13:02:48,638 - WARNING - Skipping generated graph stats for batch 0 graph 59 due to empty graph
+2025-10-28 13:02:49,068 - WARNING - Skipping generated graph stats for batch 0 graph 60 due to empty graph
+2025-10-28 13:02:49,690 - WARNING - Skipping generated graph stats for batch 0 graph 61 due to empty graph
+2025-10-28 13:02:50,485 - WARNING - Skipping generated graph stats for batch 0 graph 62 due to empty graph
+2025-10-28 13:02:51,226 - WARNING - Skipping generated graph stats for batch 0 graph 63 due to empty graph
+2025-10-28 13:02:51,744 - WARNING - Skipping generated graph stats for batch 0 graph 64 due to empty graph
+2025-10-28 13:02:52,165 - WARNING - Skipping generated graph stats for batch 0 graph 65 due to empty graph
+2025-10-28 13:02:52,584 - WARNING - Skipping generated graph stats for batch 0 graph 66 due to empty graph
+2025-10-28 13:02:53,003 - WARNING - Skipping generated graph stats for batch 0 graph 67 due to empty graph
+2025-10-28 13:02:53,423 - WARNING - Skipping generated graph stats for batch 0 graph 68 due to empty graph
+2025-10-28 13:02:53,841 - WARNING - Skipping generated graph stats for batch 0 graph 69 due to empty graph
+2025-10-28 13:02:54,262 - WARNING - Skipping generated graph stats for batch 0 graph 70 due to empty graph
+2025-10-28 13:02:54,680 - WARNING - Skipping generated graph stats for batch 0 graph 71 due to empty graph
+2025-10-28 13:02:55,099 - WARNING - Skipping generated graph stats for batch 0 graph 72 due to empty graph
+2025-10-28 13:02:55,519 - WARNING - Skipping generated graph stats for batch 0 graph 73 due to empty graph
+2025-10-28 13:02:55,939 - WARNING - Skipping generated graph stats for batch 0 graph 74 due to empty graph
+2025-10-28 13:02:56,359 - WARNING - Skipping generated graph stats for batch 0 graph 75 due to empty graph
+2025-10-28 13:02:56,779 - WARNING - Skipping generated graph stats for batch 0 graph 76 due to empty graph
+2025-10-28 13:02:57,199 - WARNING - Skipping generated graph stats for batch 0 graph 77 due to empty graph
+2025-10-28 13:02:57,619 - WARNING - Skipping generated graph stats for batch 0 graph 78 due to empty graph
+2025-10-28 13:02:58,037 - WARNING - Skipping generated graph stats for batch 0 graph 79 due to empty graph
+2025-10-28 13:02:58,456 - WARNING - Skipping generated graph stats for batch 0 graph 80 due to empty graph
+2025-10-28 13:02:58,875 - WARNING - Skipping generated graph stats for batch 0 graph 81 due to empty graph
+2025-10-28 13:02:59,308 - WARNING - Skipping generated graph stats for batch 0 graph 82 due to empty graph
+2025-10-28 13:02:59,728 - WARNING - Skipping generated graph stats for batch 0 graph 83 due to empty graph
+2025-10-28 13:03:00,148 - WARNING - Skipping generated graph stats for batch 0 graph 84 due to empty graph
+2025-10-28 13:03:00,567 - WARNING - Skipping generated graph stats for batch 0 graph 85 due to empty graph
+2025-10-28 13:03:00,985 - WARNING - Skipping generated graph stats for batch 0 graph 86 due to empty graph
+2025-10-28 13:03:01,405 - WARNING - Skipping generated graph stats for batch 0 graph 87 due to empty graph
+2025-10-28 13:03:01,824 - WARNING - Skipping generated graph stats for batch 0 graph 88 due to empty graph
+2025-10-28 13:03:02,243 - WARNING - Skipping generated graph stats for batch 0 graph 89 due to empty graph
+2025-10-28 13:03:02,662 - WARNING - Skipping generated graph stats for batch 0 graph 90 due to empty graph
+2025-10-28 13:03:03,077 - WARNING - Skipping generated graph stats for batch 0 graph 91 due to empty graph
+2025-10-28 13:03:03,489 - WARNING - Skipping generated graph stats for batch 0 graph 92 due to empty graph
+2025-10-28 13:03:03,900 - WARNING - Skipping generated graph stats for batch 0 graph 93 due to empty graph
+2025-10-28 13:03:04,320 - WARNING - Skipping generated graph stats for batch 0 graph 94 due to empty graph
+2025-10-28 13:03:04,738 - WARNING - Skipping generated graph stats for batch 0 graph 95 due to empty graph
+2025-10-28 13:03:05,159 - WARNING - Skipping generated graph stats for batch 0 graph 96 due to empty graph
+2025-10-28 13:03:05,579 - WARNING - Skipping generated graph stats for batch 0 graph 97 due to empty graph
+2025-10-28 13:03:05,998 - WARNING - Skipping generated graph stats for batch 0 graph 98 due to empty graph
+2025-10-28 13:03:06,418 - WARNING - Skipping generated graph stats for batch 0 graph 99 due to empty graph
+2025-10-28 13:03:06,836 - WARNING - Skipping generated graph stats for batch 0 graph 100 due to empty graph
+2025-10-28 13:03:07,255 - WARNING - Skipping generated graph stats for batch 0 graph 101 due to empty graph
+2025-10-28 13:03:07,675 - WARNING - Skipping generated graph stats for batch 0 graph 102 due to empty graph
+2025-10-28 13:03:08,094 - WARNING - Skipping generated graph stats for batch 0 graph 103 due to empty graph
+2025-10-28 13:03:08,523 - WARNING - Skipping generated graph stats for batch 0 graph 104 due to empty graph
+2025-10-28 13:03:08,947 - WARNING - Skipping generated graph stats for batch 0 graph 105 due to empty graph
+2025-10-28 13:03:09,366 - WARNING - Skipping generated graph stats for batch 0 graph 106 due to empty graph
+2025-10-28 13:03:09,784 - WARNING - Skipping generated graph stats for batch 0 graph 107 due to empty graph
+2025-10-28 13:03:10,203 - WARNING - Skipping generated graph stats for batch 0 graph 108 due to empty graph
+2025-10-28 13:03:10,622 - WARNING - Skipping generated graph stats for batch 0 graph 109 due to empty graph
+2025-10-28 13:03:11,042 - WARNING - Skipping generated graph stats for batch 0 graph 110 due to empty graph
+2025-10-28 13:03:11,463 - WARNING - Skipping generated graph stats for batch 0 graph 111 due to empty graph
+2025-10-28 13:03:11,883 - WARNING - Skipping generated graph stats for batch 0 graph 112 due to empty graph
+2025-10-28 13:03:12,303 - WARNING - Skipping generated graph stats for batch 0 graph 113 due to empty graph
+2025-10-28 13:03:12,721 - WARNING - Skipping generated graph stats for batch 0 graph 114 due to empty graph
+2025-10-28 13:03:13,140 - WARNING - Skipping generated graph stats for batch 0 graph 115 due to empty graph
+2025-10-28 13:03:13,559 - WARNING - Skipping generated graph stats for batch 0 graph 116 due to empty graph
+2025-10-28 13:03:13,980 - WARNING - Skipping generated graph stats for batch 0 graph 117 due to empty graph
+2025-10-28 13:03:14,401 - WARNING - Skipping generated graph stats for batch 0 graph 118 due to empty graph
+2025-10-28 13:03:14,820 - WARNING - Skipping generated graph stats for batch 0 graph 119 due to empty graph
+2025-10-28 13:03:15,239 - WARNING - Skipping generated graph stats for batch 0 graph 120 due to empty graph
+2025-10-28 13:03:15,658 - WARNING - Skipping generated graph stats for batch 0 graph 121 due to empty graph
+2025-10-28 13:03:16,076 - WARNING - Skipping generated graph stats for batch 0 graph 122 due to empty graph
+2025-10-28 13:03:16,494 - WARNING - Skipping generated graph stats for batch 0 graph 123 due to empty graph
+2025-10-28 13:03:16,914 - WARNING - Skipping generated graph stats for batch 0 graph 124 due to empty graph
+2025-10-28 13:03:17,333 - WARNING - Skipping generated graph stats for batch 0 graph 125 due to empty graph
+2025-10-28 13:03:17,752 - WARNING - Skipping generated graph stats for batch 0 graph 126 due to empty graph
+2025-10-28 13:03:18,171 - WARNING - Skipping generated graph stats for batch 0 graph 127 due to empty graph
+2025-10-28 13:03:18,590 - WARNING - Skipping generated graph stats for batch 0 graph 128 due to empty graph
+2025-10-28 13:03:19,008 - WARNING - Skipping generated graph stats for batch 0 graph 129 due to empty graph
+2025-10-28 13:03:19,426 - WARNING - Skipping generated graph stats for batch 0 graph 130 due to empty graph
+2025-10-28 13:03:19,845 - WARNING - Skipping generated graph stats for batch 0 graph 131 due to empty graph
+2025-10-28 13:03:20,270 - WARNING - Skipping generated graph stats for batch 0 graph 132 due to empty graph
+2025-10-28 13:03:20,690 - WARNING - Skipping generated graph stats for batch 0 graph 133 due to empty graph
+2025-10-28 13:03:21,111 - WARNING - Skipping generated graph stats for batch 0 graph 134 due to empty graph
+2025-10-28 13:03:21,531 - WARNING - Skipping generated graph stats for batch 0 graph 135 due to empty graph
+2025-10-28 13:03:21,950 - WARNING - Skipping generated graph stats for batch 0 graph 136 due to empty graph
+2025-10-28 13:03:22,369 - WARNING - Skipping generated graph stats for batch 0 graph 137 due to empty graph
+2025-10-28 13:03:22,788 - WARNING - Skipping generated graph stats for batch 0 graph 138 due to empty graph
+2025-10-28 13:03:23,208 - WARNING - Skipping generated graph stats for batch 0 graph 139 due to empty graph
+2025-10-28 13:03:23,627 - WARNING - Skipping generated graph stats for batch 0 graph 140 due to empty graph
+2025-10-28 13:03:24,049 - WARNING - Skipping generated graph stats for batch 0 graph 141 due to empty graph
+2025-10-28 13:03:24,469 - WARNING - Skipping generated graph stats for batch 0 graph 142 due to empty graph
+2025-10-28 13:03:24,887 - WARNING - Skipping generated graph stats for batch 0 graph 143 due to empty graph
+2025-10-28 13:03:25,307 - WARNING - Skipping generated graph stats for batch 0 graph 144 due to empty graph
+2025-10-28 13:03:25,726 - WARNING - Skipping generated graph stats for batch 0 graph 145 due to empty graph
+2025-10-28 13:03:26,146 - WARNING - Skipping generated graph stats for batch 0 graph 146 due to empty graph
+2025-10-28 13:03:26,565 - WARNING - Skipping generated graph stats for batch 0 graph 147 due to empty graph
+2025-10-28 13:03:26,985 - WARNING - Skipping generated graph stats for batch 0 graph 148 due to empty graph
+2025-10-28 13:03:27,403 - WARNING - Skipping generated graph stats for batch 0 graph 149 due to empty graph
+2025-10-28 13:03:27,822 - WARNING - Skipping generated graph stats for batch 0 graph 150 due to empty graph
+2025-10-28 13:03:28,244 - WARNING - Skipping generated graph stats for batch 0 graph 151 due to empty graph
+2025-10-28 13:03:28,662 - WARNING - Skipping generated graph stats for batch 0 graph 152 due to empty graph
+2025-10-28 13:03:29,088 - WARNING - Skipping generated graph stats for batch 0 graph 153 due to empty graph
+2025-10-28 13:03:29,506 - WARNING - Skipping generated graph stats for batch 0 graph 154 due to empty graph
+2025-10-28 13:03:29,926 - WARNING - Skipping generated graph stats for batch 0 graph 155 due to empty graph
+2025-10-28 13:03:30,346 - WARNING - Skipping generated graph stats for batch 0 graph 156 due to empty graph
+2025-10-28 13:03:30,763 - WARNING - Skipping generated graph stats for batch 0 graph 157 due to empty graph
+2025-10-28 13:03:31,181 - WARNING - Skipping generated graph stats for batch 0 graph 158 due to empty graph
+2025-10-28 13:03:31,599 - WARNING - Skipping generated graph stats for batch 0 graph 159 due to empty graph
+2025-10-28 13:03:32,019 - WARNING - Skipping generated graph stats for batch 0 graph 160 due to empty graph
+2025-10-28 13:03:32,432 - WARNING - Skipping generated graph stats for batch 0 graph 161 due to empty graph
+2025-10-28 13:03:32,845 - WARNING - Skipping generated graph stats for batch 0 graph 162 due to empty graph
+2025-10-28 13:03:33,259 - WARNING - Skipping generated graph stats for batch 0 graph 163 due to empty graph
+2025-10-28 13:03:33,678 - WARNING - Skipping generated graph stats for batch 0 graph 164 due to empty graph
+2025-10-28 13:03:34,099 - WARNING - Skipping generated graph stats for batch 0 graph 165 due to empty graph
+2025-10-28 13:03:34,519 - WARNING - Skipping generated graph stats for batch 0 graph 166 due to empty graph
+2025-10-28 13:03:34,938 - WARNING - Skipping generated graph stats for batch 0 graph 167 due to empty graph
+2025-10-28 13:03:35,358 - WARNING - Skipping generated graph stats for batch 0 graph 168 due to empty graph
+2025-10-28 13:03:35,776 - WARNING - Skipping generated graph stats for batch 0 graph 169 due to empty graph
+2025-10-28 13:03:36,196 - WARNING - Skipping generated graph stats for batch 0 graph 170 due to empty graph
+2025-10-28 13:03:36,616 - WARNING - Skipping generated graph stats for batch 0 graph 171 due to empty graph
+2025-10-28 13:03:37,035 - WARNING - Skipping generated graph stats for batch 0 graph 172 due to empty graph
+2025-10-28 13:03:37,454 - WARNING - Skipping generated graph stats for batch 0 graph 173 due to empty graph
+2025-10-28 13:03:37,873 - WARNING - Skipping generated graph stats for batch 0 graph 174 due to empty graph
+2025-10-28 13:03:38,293 - WARNING - Skipping generated graph stats for batch 0 graph 175 due to empty graph
+2025-10-28 13:03:38,712 - WARNING - Skipping generated graph stats for batch 0 graph 176 due to empty graph
+2025-10-28 13:03:39,132 - WARNING - Skipping generated graph stats for batch 0 graph 177 due to empty graph
+2025-10-28 13:03:39,551 - WARNING - Skipping generated graph stats for batch 0 graph 178 due to empty graph
+2025-10-28 13:03:39,968 - WARNING - Skipping generated graph stats for batch 0 graph 179 due to empty graph
+2025-10-28 13:03:40,389 - WARNING - Skipping generated graph stats for batch 0 graph 180 due to empty graph
+2025-10-28 13:03:40,809 - WARNING - Skipping generated graph stats for batch 0 graph 181 due to empty graph
+2025-10-28 13:03:41,229 - WARNING - Skipping generated graph stats for batch 0 graph 182 due to empty graph
+2025-10-28 13:03:41,648 - WARNING - Skipping generated graph stats for batch 0 graph 183 due to empty graph
+2025-10-28 13:03:42,068 - WARNING - Skipping generated graph stats for batch 0 graph 184 due to empty graph
+2025-10-28 13:03:42,486 - WARNING - Skipping generated graph stats for batch 0 graph 185 due to empty graph
+2025-10-28 13:03:42,904 - WARNING - Skipping generated graph stats for batch 0 graph 186 due to empty graph
+2025-10-28 13:03:43,323 - WARNING - Skipping generated graph stats for batch 0 graph 187 due to empty graph
+2025-10-28 13:03:43,741 - WARNING - Skipping generated graph stats for batch 0 graph 188 due to empty graph
+2025-10-28 13:03:44,161 - WARNING - Skipping generated graph stats for batch 0 graph 189 due to empty graph
+2025-10-28 13:03:44,579 - WARNING - Skipping generated graph stats for batch 0 graph 190 due to empty graph
+2025-10-28 13:03:44,998 - WARNING - Skipping generated graph stats for batch 0 graph 191 due to empty graph
+2025-10-28 13:03:45,417 - WARNING - Skipping generated graph stats for batch 0 graph 192 due to empty graph
+2025-10-28 13:03:45,836 - WARNING - Skipping generated graph stats for batch 0 graph 193 due to empty graph
+2025-10-28 13:03:46,254 - WARNING - Skipping generated graph stats for batch 0 graph 194 due to empty graph
+2025-10-28 13:03:46,673 - WARNING - Skipping generated graph stats for batch 0 graph 195 due to empty graph
+2025-10-28 13:03:47,092 - WARNING - Skipping generated graph stats for batch 0 graph 196 due to empty graph
+2025-10-28 13:03:47,511 - WARNING - Skipping generated graph stats for batch 0 graph 197 due to empty graph
+2025-10-28 13:03:47,930 - WARNING - Skipping generated graph stats for batch 0 graph 198 due to empty graph
+2025-10-28 13:03:48,350 - WARNING - Skipping generated graph stats for batch 0 graph 199 due to empty graph
+2025-10-28 13:03:48,769 - WARNING - Skipping generated graph stats for batch 0 graph 200 due to empty graph
+2025-10-28 13:03:49,187 - WARNING - Skipping generated graph stats for batch 0 graph 201 due to empty graph
+2025-10-28 13:03:49,607 - WARNING - Skipping generated graph stats for batch 0 graph 202 due to empty graph
+2025-10-28 13:03:50,027 - WARNING - Skipping generated graph stats for batch 0 graph 203 due to empty graph
+2025-10-28 13:03:50,446 - WARNING - Skipping generated graph stats for batch 0 graph 204 due to empty graph
+2025-10-28 13:03:50,867 - WARNING - Skipping generated graph stats for batch 0 graph 205 due to empty graph
+2025-10-28 13:03:51,287 - WARNING - Skipping generated graph stats for batch 0 graph 206 due to empty graph
+2025-10-28 13:03:51,706 - WARNING - Skipping generated graph stats for batch 0 graph 207 due to empty graph
+2025-10-28 13:03:52,128 - WARNING - Skipping generated graph stats for batch 0 graph 208 due to empty graph
+2025-10-28 13:03:52,547 - WARNING - Skipping generated graph stats for batch 0 graph 209 due to empty graph
+2025-10-28 13:03:52,967 - WARNING - Skipping generated graph stats for batch 0 graph 210 due to empty graph
+2025-10-28 13:03:53,387 - WARNING - Skipping generated graph stats for batch 0 graph 211 due to empty graph
+2025-10-28 13:03:53,805 - WARNING - Skipping generated graph stats for batch 0 graph 212 due to empty graph
+2025-10-28 13:03:54,224 - WARNING - Skipping generated graph stats for batch 0 graph 213 due to empty graph
+2025-10-28 13:03:54,644 - WARNING - Skipping generated graph stats for batch 0 graph 214 due to empty graph
+2025-10-28 13:03:55,063 - WARNING - Skipping generated graph stats for batch 0 graph 215 due to empty graph
+2025-10-28 13:03:55,482 - WARNING - Skipping generated graph stats for batch 0 graph 216 due to empty graph
+2025-10-28 13:03:55,900 - WARNING - Skipping generated graph stats for batch 0 graph 217 due to empty graph
+2025-10-28 13:03:56,343 - WARNING - Skipping generated graph stats for batch 0 graph 218 due to empty graph
+2025-10-28 13:03:56,789 - WARNING - Skipping generated graph stats for batch 0 graph 219 due to empty graph
+2025-10-28 13:03:57,234 - WARNING - Skipping generated graph stats for batch 0 graph 220 due to empty graph
+2025-10-28 13:03:57,655 - WARNING - Skipping generated graph stats for batch 0 graph 221 due to empty graph
+2025-10-28 13:03:58,074 - WARNING - Skipping generated graph stats for batch 0 graph 222 due to empty graph
+2025-10-28 13:03:58,494 - WARNING - Skipping generated graph stats for batch 0 graph 223 due to empty graph
+2025-10-28 13:03:58,912 - WARNING - Skipping generated graph stats for batch 0 graph 224 due to empty graph
+2025-10-28 13:03:59,346 - WARNING - Skipping generated graph stats for batch 0 graph 225 due to empty graph
+2025-10-28 13:03:59,765 - WARNING - Skipping generated graph stats for batch 0 graph 226 due to empty graph
+2025-10-28 13:04:00,184 - WARNING - Skipping generated graph stats for batch 0 graph 227 due to empty graph
+2025-10-28 13:04:00,604 - WARNING - Skipping generated graph stats for batch 0 graph 228 due to empty graph
+2025-10-28 13:04:01,024 - WARNING - Skipping generated graph stats for batch 0 graph 229 due to empty graph
+2025-10-28 13:04:01,443 - WARNING - Skipping generated graph stats for batch 0 graph 230 due to empty graph
+2025-10-28 13:04:01,861 - WARNING - Skipping generated graph stats for batch 0 graph 231 due to empty graph
+2025-10-28 13:04:02,282 - WARNING - Skipping generated graph stats for batch 0 graph 232 due to empty graph
+2025-10-28 13:04:02,700 - WARNING - Skipping generated graph stats for batch 0 graph 233 due to empty graph
+2025-10-28 13:04:03,113 - WARNING - Skipping generated graph stats for batch 0 graph 234 due to empty graph
+2025-10-28 13:04:03,524 - WARNING - Skipping generated graph stats for batch 0 graph 235 due to empty graph
+2025-10-28 13:04:03,938 - WARNING - Skipping generated graph stats for batch 0 graph 236 due to empty graph
+2025-10-28 13:04:04,357 - WARNING - Skipping generated graph stats for batch 0 graph 237 due to empty graph
+2025-10-28 13:04:04,777 - WARNING - Skipping generated graph stats for batch 0 graph 238 due to empty graph
+2025-10-28 13:04:05,196 - WARNING - Skipping generated graph stats for batch 0 graph 239 due to empty graph
+2025-10-28 13:04:05,616 - WARNING - Skipping generated graph stats for batch 0 graph 240 due to empty graph
+2025-10-28 13:04:06,035 - WARNING - Skipping generated graph stats for batch 0 graph 241 due to empty graph
+2025-10-28 13:04:06,454 - WARNING - Skipping generated graph stats for batch 0 graph 242 due to empty graph
+2025-10-28 13:04:06,873 - WARNING - Skipping generated graph stats for batch 0 graph 243 due to empty graph
+2025-10-28 13:04:07,293 - WARNING - Skipping generated graph stats for batch 0 graph 244 due to empty graph
+2025-10-28 13:04:07,712 - WARNING - Skipping generated graph stats for batch 0 graph 245 due to empty graph
+2025-10-28 13:04:08,132 - WARNING - Skipping generated graph stats for batch 0 graph 246 due to empty graph
+2025-10-28 13:04:08,551 - WARNING - Skipping generated graph stats for batch 0 graph 247 due to empty graph
+2025-10-28 13:04:08,970 - WARNING - Skipping generated graph stats for batch 0 graph 248 due to empty graph
+2025-10-28 13:04:09,390 - WARNING - Skipping generated graph stats for batch 0 graph 249 due to empty graph
+2025-10-28 13:04:09,811 - WARNING - Skipping generated graph stats for batch 0 graph 250 due to empty graph
+2025-10-28 13:04:10,231 - WARNING - Skipping generated graph stats for batch 0 graph 251 due to empty graph
+2025-10-28 13:04:10,652 - WARNING - Skipping generated graph stats for batch 0 graph 252 due to empty graph
+2025-10-28 13:04:11,072 - WARNING - Skipping generated graph stats for batch 0 graph 253 due to empty graph
+2025-10-28 13:04:11,492 - WARNING - Skipping generated graph stats for batch 0 graph 254 due to empty graph
+2025-10-28 13:04:11,913 - WARNING - Skipping generated graph stats for batch 0 graph 255 due to empty graph
+2025-10-28 13:04:12,358 - WARNING - Skipping generated graph stats for batch 1 graph 0 due to empty graph
+2025-10-28 13:04:12,769 - WARNING - Skipping generated graph stats for batch 1 graph 1 due to empty graph
+2025-10-28 13:04:13,185 - WARNING - Skipping generated graph stats for batch 1 graph 2 due to empty graph
+2025-10-28 13:04:13,604 - WARNING - Skipping generated graph stats for batch 1 graph 3 due to empty graph
+2025-10-28 13:04:14,027 - WARNING - Skipping generated graph stats for batch 1 graph 4 due to empty graph
+2025-10-28 13:04:14,456 - WARNING - Skipping generated graph stats for batch 1 graph 5 due to empty graph
+2025-10-28 13:04:14,874 - WARNING - Skipping generated graph stats for batch 1 graph 6 due to empty graph
+2025-10-28 13:04:15,293 - WARNING - Skipping generated graph stats for batch 1 graph 7 due to empty graph
+2025-10-28 13:04:15,712 - WARNING - Skipping generated graph stats for batch 1 graph 8 due to empty graph
+2025-10-28 13:04:16,132 - WARNING - Skipping generated graph stats for batch 1 graph 9 due to empty graph
+2025-10-28 13:04:16,551 - WARNING - Skipping generated graph stats for batch 1 graph 10 due to empty graph
+2025-10-28 13:04:16,972 - WARNING - Skipping generated graph stats for batch 1 graph 11 due to empty graph
+2025-10-28 13:04:17,391 - WARNING - Skipping generated graph stats for batch 1 graph 12 due to empty graph
+2025-10-28 13:04:17,812 - WARNING - Skipping generated graph stats for batch 1 graph 13 due to empty graph
+2025-10-28 13:04:18,232 - WARNING - Skipping generated graph stats for batch 1 graph 14 due to empty graph
+2025-10-28 13:04:18,651 - WARNING - Skipping generated graph stats for batch 1 graph 15 due to empty graph
+2025-10-28 13:04:19,070 - WARNING - Skipping generated graph stats for batch 1 graph 16 due to empty graph
+2025-10-28 13:04:19,488 - WARNING - Skipping generated graph stats for batch 1 graph 17 due to empty graph
+2025-10-28 13:04:19,908 - WARNING - Skipping generated graph stats for batch 1 graph 18 due to empty graph
+2025-10-28 13:04:20,327 - WARNING - Skipping generated graph stats for batch 1 graph 19 due to empty graph
+2025-10-28 13:04:20,752 - WARNING - Skipping generated graph stats for batch 1 graph 20 due to empty graph
+2025-10-28 13:04:21,171 - WARNING - Skipping generated graph stats for batch 1 graph 21 due to empty graph
+2025-10-28 13:04:21,590 - WARNING - Skipping generated graph stats for batch 1 graph 22 due to empty graph
+2025-10-28 13:04:22,009 - WARNING - Skipping generated graph stats for batch 1 graph 23 due to empty graph
+2025-10-28 13:04:22,430 - WARNING - Skipping generated graph stats for batch 1 graph 24 due to empty graph
+2025-10-28 13:04:22,850 - WARNING - Skipping generated graph stats for batch 1 graph 25 due to empty graph
+2025-10-28 13:04:23,270 - WARNING - Skipping generated graph stats for batch 1 graph 26 due to empty graph
+2025-10-28 13:04:23,689 - WARNING - Skipping generated graph stats for batch 1 graph 27 due to empty graph
+2025-10-28 13:04:24,109 - WARNING - Skipping generated graph stats for batch 1 graph 28 due to empty graph
+2025-10-28 13:04:24,527 - WARNING - Skipping generated graph stats for batch 1 graph 29 due to empty graph
+2025-10-28 13:04:24,947 - WARNING - Skipping generated graph stats for batch 1 graph 30 due to empty graph
+2025-10-28 13:04:25,369 - WARNING - Skipping generated graph stats for batch 1 graph 31 due to empty graph
+2025-10-28 13:04:25,790 - WARNING - Skipping generated graph stats for batch 1 graph 32 due to empty graph
+2025-10-28 13:04:26,208 - WARNING - Skipping generated graph stats for batch 1 graph 33 due to empty graph
+2025-10-28 13:04:26,628 - WARNING - Skipping generated graph stats for batch 1 graph 34 due to empty graph
+2025-10-28 13:04:27,048 - WARNING - Skipping generated graph stats for batch 1 graph 35 due to empty graph
+2025-10-28 13:04:27,467 - WARNING - Skipping generated graph stats for batch 1 graph 36 due to empty graph
+2025-10-28 13:04:27,885 - WARNING - Skipping generated graph stats for batch 1 graph 37 due to empty graph
+2025-10-28 13:04:28,304 - WARNING - Skipping generated graph stats for batch 1 graph 38 due to empty graph
+2025-10-28 13:04:28,724 - WARNING - Skipping generated graph stats for batch 1 graph 39 due to empty graph
+2025-10-28 13:04:29,152 - WARNING - Skipping generated graph stats for batch 1 graph 40 due to empty graph
+2025-10-28 13:04:29,594 - WARNING - Skipping generated graph stats for batch 1 graph 41 due to empty graph
+2025-10-28 13:04:30,015 - WARNING - Skipping generated graph stats for batch 1 graph 42 due to empty graph
+2025-10-28 13:04:30,434 - WARNING - Skipping generated graph stats for batch 1 graph 43 due to empty graph
+2025-10-28 13:04:30,853 - WARNING - Skipping generated graph stats for batch 1 graph 44 due to empty graph
+2025-10-28 13:04:31,272 - WARNING - Skipping generated graph stats for batch 1 graph 45 due to empty graph
+2025-10-28 13:04:31,692 - WARNING - Skipping generated graph stats for batch 1 graph 46 due to empty graph
+2025-10-28 13:04:32,112 - WARNING - Skipping generated graph stats for batch 1 graph 47 due to empty graph
+2025-10-28 13:04:32,525 - WARNING - Skipping generated graph stats for batch 1 graph 48 due to empty graph
+2025-10-28 13:04:32,938 - WARNING - Skipping generated graph stats for batch 1 graph 49 due to empty graph
+2025-10-28 13:04:33,354 - WARNING - Skipping generated graph stats for batch 1 graph 50 due to empty graph
+2025-10-28 13:04:33,774 - WARNING - Skipping generated graph stats for batch 1 graph 51 due to empty graph
+2025-10-28 13:04:34,193 - WARNING - Skipping generated graph stats for batch 1 graph 52 due to empty graph
+2025-10-28 13:04:34,612 - WARNING - Skipping generated graph stats for batch 1 graph 53 due to empty graph
+2025-10-28 13:04:35,031 - WARNING - Skipping generated graph stats for batch 1 graph 54 due to empty graph
+2025-10-28 13:04:35,452 - WARNING - Skipping generated graph stats for batch 1 graph 55 due to empty graph
+2025-10-28 13:04:35,872 - WARNING - Skipping generated graph stats for batch 1 graph 56 due to empty graph
+2025-10-28 13:04:36,290 - WARNING - Skipping generated graph stats for batch 1 graph 57 due to empty graph
+2025-10-28 13:04:36,709 - WARNING - Skipping generated graph stats for batch 1 graph 58 due to empty graph
+2025-10-28 13:04:37,127 - WARNING - Skipping generated graph stats for batch 1 graph 59 due to empty graph
+2025-10-28 13:04:37,545 - WARNING - Skipping generated graph stats for batch 1 graph 60 due to empty graph
+2025-10-28 13:04:37,964 - WARNING - Skipping generated graph stats for batch 1 graph 61 due to empty graph
+2025-10-28 13:04:38,383 - WARNING - Skipping generated graph stats for batch 1 graph 62 due to empty graph
+2025-10-28 13:04:38,801 - WARNING - Skipping generated graph stats for batch 1 graph 63 due to empty graph
+2025-10-28 13:04:39,219 - WARNING - Skipping generated graph stats for batch 1 graph 64 due to empty graph
+2025-10-28 13:04:39,638 - WARNING - Skipping generated graph stats for batch 1 graph 65 due to empty graph
+2025-10-28 13:04:40,057 - WARNING - Skipping generated graph stats for batch 1 graph 66 due to empty graph
+2025-10-28 13:04:40,475 - WARNING - Skipping generated graph stats for batch 1 graph 67 due to empty graph
+2025-10-28 13:04:40,895 - WARNING - Skipping generated graph stats for batch 1 graph 68 due to empty graph
+2025-10-28 13:04:41,313 - WARNING - Skipping generated graph stats for batch 1 graph 69 due to empty graph
+2025-10-28 13:04:41,732 - WARNING - Skipping generated graph stats for batch 1 graph 70 due to empty graph
+2025-10-28 13:04:42,153 - WARNING - Skipping generated graph stats for batch 1 graph 71 due to empty graph
+2025-10-28 13:04:42,572 - WARNING - Skipping generated graph stats for batch 1 graph 72 due to empty graph
+2025-10-28 13:04:42,991 - WARNING - Skipping generated graph stats for batch 1 graph 73 due to empty graph
+2025-10-28 13:04:43,409 - WARNING - Skipping generated graph stats for batch 1 graph 74 due to empty graph
+2025-10-28 13:04:43,827 - WARNING - Skipping generated graph stats for batch 1 graph 75 due to empty graph
+2025-10-28 13:04:44,261 - WARNING - Skipping generated graph stats for batch 1 graph 76 due to empty graph
+2025-10-28 13:04:44,701 - WARNING - Skipping generated graph stats for batch 1 graph 77 due to empty graph
