@@ -1,0 +1,205 @@
+Logging training details to logs/training_20251028_095943.log
+================================================================================
+Command-line Arguments
+================================================================================
+{
+  "batch_size": 256,
+  "data_path": "data/labelhomophilyall_graphs.pkl",
+  "dim_condition": 128,
+  "dropout": 0.5,
+  "epochs_autoencoder": 100,
+  "epochs_denoise": 100,
+  "feat_dim": 32,
+  "graphs_dir": "generated data/graphs",
+  "hidden_dim_decoder": 256,
+  "hidden_dim_denoise": 512,
+  "hidden_dim_encoder": 128,
+  "homophily_type": "label",
+  "lambda_feat": 0.5,
+  "lambda_hom": 2.0,
+  "lambda_label": 1.0,
+  "lambda_struct": 1.0,
+  "latent_dim": 32,
+  "log_dir": "logs",
+  "log_file": null,
+  "lr": 0.0001,
+  "n_layers_decoder": 3,
+  "n_layers_denoise": 3,
+  "n_layers_encoder": 2,
+  "n_max_nodes": 100,
+  "n_properties": 16,
+  "num_classes": 3,
+  "recompute_stats": false,
+  "spectral_emb_dim": 10,
+  "stats_dir": "generated data/stats",
+  "teacher_decoder_path": "teacherfeature/best_model.pth",
+  "teacher_epochs": 100,
+  "teacher_latent_dim": 512,
+  "teacher_type": "feature_vae",
+  "timesteps": 500,
+  "train_autoencoder": true,
+  "train_denoiser": false,
+  "train_teacher_if_missing": true,
+  "use_cached_stats": true,
+  "use_hierarchical": true,
+  "variational_autoencoder": true
+}
+================================================================================
+
+
+================================================================================
+Device Information
+================================================================================
+PyTorch version: 2.5.1+cu121
+CUDA available: True
+CUDA version: 12.1
+Device name: NVIDIA A40
+Device count: 1
+Current device: 0
+Device capability: (8, 6)
+Total GPU memory: 47.62 GB
+Selected device: cuda:0
+================================================================================
+
+================================================================================
+Loading dataset...
+================================================================================
+Loading dataset from pickle file: data/labelhomophilyall_graphs.pkl
+✓ Loaded 7000 graphs from pickle file
+  Feature dimension: 32
+Processing graphs:   0%|                                | 0/7000 [00:00<?, ?it/s]Processing graphs:  94%|████████████████▉ | 6611/7000 [00:00<00:00, 66103.60it/s]Processing graphs: 100%|██████████████████| 7000/7000 [00:00<00:00, 66476.31it/s]
+✓ Processed 7000 graphs (using 32D features directly)
+
+Creating stratified train/val/test split based on label homophily...
+Loading actual homophily values from data/labelhomophilyall_log.csv
+✓ Loaded 7000 actual label homophily values from CSV
+
+Label Homophily Statistics:
+  Min: 0.1471
+  Max: 0.7826
+  Mean: 0.4569
+  Median: 0.4613
+
+Distribution by target bins:
+  0.2 ± 0.05: 712 graphs
+  0.3 ± 0.05: 1369 graphs
+  0.4 ± 0.05: 1275 graphs
+  0.5 ± 0.05: 1316 graphs
+  0.6 ± 0.05: 1505 graphs
+  0.7 ± 0.05: 813 graphs
+  0.8 ± 0.05: 9 graphs
+
+Bin distribution after rounding:
+  Bin 1 (≈0.1): 1 graphs
+  Bin 2 (≈0.2): 729 graphs
+  Bin 3 (≈0.3): 1352 graphs
+  Bin 4 (≈0.4): 1275 graphs
+  Bin 5 (≈0.5): 1316 graphs
+  Bin 6 (≈0.6): 1505 graphs
+  Bin 7 (≈0.7): 813 graphs
+  Bin 8 (≈0.8): 9 graphs
+
+⚠ Warning: Some bins have < 10 samples: [1 8]
+  Merging small bins into nearest larger bins...
+    Merged bin 1 → 2
+    Merged bin 8 → 7
+
+Bin distribution after merging:
+  Bin 2 (≈0.2): 730 graphs
+  Bin 3 (≈0.3): 1352 graphs
+  Bin 4 (≈0.4): 1275 graphs
+  Bin 5 (≈0.5): 1316 graphs
+  Bin 6 (≈0.6): 1505 graphs
+  Bin 7 (≈0.7): 822 graphs
+
+================================================================================
+Normalizing graph statistics (z-score)...
+================================================================================
+  Stats shape: (5600, 16)
+  Stats mean (first 5): [9.9316071e+01 3.5178857e+02 7.2038606e-02 1.7609642e+01 1.1532143e+00]
+  Stats std (first 5): [8.4858072e-01 3.0994989e+01 6.0932431e-03 2.6675451e+00 3.7334463e-01]
+  ✓ Normalized 7000 graphs
+  ✓ Saved normalization parameters to stats_normalization.pt
+================================================================================
+
+Creating DataLoaders...
+  Using 4 workers for data loading
+  Pin memory: True
+
+================================================================================
+Dataset Statistics:
+================================================================================
+  Total graphs: 7000
+  Training set: 5600 graphs
+  Validation set: 700 graphs
+  Test set: 700 graphs
+  Batch size: 256
+  Training batches per epoch: 22
+  Validation batches per epoch: 3
+
+Label Homophily Distribution (stratified split):
+  Train: 0.2=570 0.3=1095 0.4=1020 0.5=1053 0.6=1204 0.7=650 0.8=8 
+  Val: 0.2=70 0.3=138 0.4=128 0.5=131 0.6=151 0.7=81 0.8=1 
+  Test: 0.2=72 0.3=136 0.4=127 0.5=132 0.6=150 0.7=82 0.8=0 
+================================================================================
+
+================================================================================
+Using Hierarchical VAE with Label->Structure->Feature decoding
+================================================================================
+  Input feature dimension: 32
+Loading teacher decoder from: teacherfeature/best_model.pth
+/srv/storage/compactdisk@storage2.rennes.grid5000.fr/users/ajamadan/generative/OnlyFeats/NGG-Hierarchical/main.py:107: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  checkpoint = torch.load(checkpoint_path, map_location=device)
+Loading FeatureVAE teacher from teacherfeature/best_model.pth
+  Encoder keys: ['encoder.encoder.0.weight', 'encoder.encoder.1.weight', 'encoder.encoder.4.weight', 'encoder.encoder.5.weight']
+  Inferred latent_dim: 512
+  Inferred hidden_dims (encoder): [256, 512]
+  ✓ Successfully loaded teacher decoder
+✓ Loaded frozen teacher decoder from teacherfeature/best_model.pth
+✓ Teacher decoder loaded and frozen
+Number of Autoencoder's trainable parameters: 388332
+
+============================================================
+Starting Autoencoder Training
+============================================================
+Total epochs: 100
+Training batches: 22
+Validation batches: 3
+============================================================
+
+[Epoch 1/100] Training phase started...
+  Batch [10/22] - Loss: 38.04789, GPU mem: 2.68/42.22 GB
+  Batch [20/22] - Loss: 36.63056, GPU mem: 2.68/42.22 GB
+  Peak GPU memory used: 31.79 GB
+[Epoch 1/100] Training complete. Starting validation...
+[Epoch 1/100] Validation complete. Time: 445.5s
+
+--------------------------------------------------------------------------------
+28/10/2025 10:07:16 Epoch: 0001, Train Loss: 37.95315 [Label: 1.117, Struct: 33.537, Feat: 2.142, Hom: 1.112, KL: 0.082], Val Loss: 34.33014
+--------------------------------------------------------------------------------
+
+✓ Saved best autoencoder checkpoint (val_loss=34.33014) [NEW BEST!]
+[Epoch 2/100] Training phase started...
+  Batch [10/22] - Loss: 35.93319, GPU mem: 2.69/42.22 GB
+  Batch [20/22] - Loss: 35.46077, GPU mem: 2.69/42.22 GB
+[Epoch 2/100] Training complete. Starting validation...
+[Epoch 2/100] Validation complete. Time: 443.4s
+
+--------------------------------------------------------------------------------
+28/10/2025 10:14:40 Epoch: 0002, Train Loss: 35.81977 [Label: 1.112, Struct: 31.432, Feat: 2.093, Hom: 1.113, KL: 0.080], Val Loss: 34.29700
+--------------------------------------------------------------------------------
+
+✓ Saved best autoencoder checkpoint (val_loss=34.29700) [NEW BEST!]
+[Epoch 3/100] Training phase started...
+  Batch [10/22] - Loss: 34.92813, GPU mem: 2.68/42.22 GB
+  Batch [20/22] - Loss: 34.23003, GPU mem: 2.68/42.22 GB
+[Epoch 3/100] Training complete. Starting validation...
+[Epoch 3/100] Validation complete. Time: 443.6s
+
+--------------------------------------------------------------------------------
+28/10/2025 10:22:03 Epoch: 0003, Train Loss: 34.69848 [Label: 1.109, Struct: 30.335, Feat: 2.046, Hom: 1.113, KL: 0.102], Val Loss: 34.56091
+--------------------------------------------------------------------------------
+
+  Val loss (34.56091) did not improve from best (34.29700)
+[Epoch 4/100] Training phase started...
+  Batch [10/22] - Loss: 33.96415, GPU mem: 2.69/42.22 GB
