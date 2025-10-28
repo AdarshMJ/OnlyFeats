@@ -69,7 +69,6 @@ def eval_autoencoder(test_loader, autoencoder, n_max_nodes, device):
             predicted_labels_per_graph = [None] * graph_sizes.numel()
 
         adj_rec = adj_rec.detach().cpu()
-        adj_rec = torch.where(adj_rec > 0.5, torch.ones_like(adj_rec), torch.zeros_like(adj_rec))
 
         # Ground-truth labels per graph (if available)
         gt_labels_per_graph = []
@@ -84,8 +83,53 @@ def eval_autoencoder(test_loader, autoencoder, n_max_nodes, device):
 
         for i, n_nodes in enumerate(graph_sizes.tolist()):
             # Slice ground-truth adjacency
-            adj_true = data.A[i, :n_nodes, :n_nodes].detach().cpu().numpy()
-            adj_pred = adj_rec[i, :n_nodes, :n_nodes].numpy()
+            adj_true_tensor = data.A[i, :n_nodes, :n_nodes].detach().cpu()
+            adj_true = adj_true_tensor.numpy()
+            adj_pred_prob = adj_rec[i, :n_nodes, :n_nodes]
+
+            # Reconstruct a binary adjacency by matching ground-truth edge count.
+            adj_pred_binary = torch.zeros_like(adj_pred_prob)
+            if n_nodes > 1:
+                # Number of undirected edges in ground-truth graph
+                num_edges_gt = int(adj_true_tensor.sum().item() / 2)
+
+                if num_edges_gt > 0:
+                    triu_idx = torch.triu_indices(n_nodes, n_nodes, offset=1)
+                    scores = adj_pred_prob[triu_idx[0], triu_idx[1]]
+
+                    # Guard against requesting more edges than available combinations
+                    k = min(num_edges_gt, scores.numel())
+                    if k > 0:
+                        topk = torch.topk(scores, k)
+                        selected_rows = triu_idx[0][topk.indices]
+                        selected_cols = triu_idx[1][topk.indices]
+                        adj_pred_binary[selected_rows, selected_cols] = 1.0
+                        adj_pred_binary[selected_cols, selected_rows] = 1.0
+
+                        logger.debug(
+                            "Reconstructed graph %d in batch %d: gt_edges=%d, mean_prob=%.4f, min_topk=%.4f, max_topk=%.4f",
+                            i, batch_idx, num_edges_gt,
+                            float(scores.mean().item()) if scores.numel() > 0 else float('nan'),
+                            float(topk.values.min().item()) if topk.values.numel() > 0 else float('nan'),
+                            float(topk.values.max().item()) if topk.values.numel() > 0 else float('nan')
+                        )
+                    else:
+                        logger.debug(
+                            "Graph %d in batch %d has gt_edges=%d but no score combinations",
+                            i, batch_idx, num_edges_gt
+                        )
+                else:
+                    logger.debug(
+                        "Graph %d in batch %d has zero ground-truth edges; leaving prediction empty",
+                        i, batch_idx
+                    )
+            else:
+                logger.debug(
+                    "Graph %d in batch %d has <=1 node; skipping edge reconstruction",
+                    i, batch_idx
+                )
+
+            adj_pred = adj_pred_binary.numpy()
 
             G_true = construct_nx_from_adj(adj_true)
             G_pred = construct_nx_from_adj(adj_pred)
