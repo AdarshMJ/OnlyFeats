@@ -109,3 +109,25 @@ python main.py \
     --epochs-denoise 100 \
     --n-properties 16
 ```
+
+#### Extract Latents
+```python
+ python latent_diffusion_conditional.py --mode extract --checkpoint outputs_conditional_feat_hom_test/best_model.pth --dataset-path data/labelhomophily1K_graphs.pkl --csv-path data/labelhomophily1K_log.csv --teacher-path   outputs_feature_vae/best_model.pth --latent-out outputs_latents/graph_latents.pt --batch-size 32
+```
+
+
+#### Train the LDM
+```python
+python latent_diffusion_conditional.py --mode train --latent-dataset outputs_latents/graph_latents.pt --output-dir outputs_diffusion --epochs 200 --timesteps 100 --lr 1e-4 --weight-decay 1e-4 --hidden-dim 256 --time-dim 128
+```
+
+
+
+
+
+
+#### Generate graphs using LDM
+
+```python
+python latent_diffusion_conditional.py --mode sample --diffusion-checkpoint outputs_diffusion/diffusion_model.pth --num-samples 2 --num-nodes 100 --target-label-hom 0.5 --struct-homophily 0.5 --feature-homophily 0.5 --target-density 0.1 --min-degree 1 --visualize --template-jitter 0.01
+```
