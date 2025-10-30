@@ -4,3 +4,4 @@ Contains updated code for vgae+ldm. Main changes include
 2. Latent diffusion model training which takes the VGAE input and trains
 3. Conditional generation with specific homophily values. The stats actually match!
 4. But the graph structures look weirdly circular with lot of central hubs.
+5. Added graph_diffusion_conditional.py that does categorical denoising directly on the graph and Gaussian noise denoising on the node features.
