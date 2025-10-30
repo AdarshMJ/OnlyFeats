@@ -138,4 +138,3 @@ python latent_diffusion_conditional.py --mode sample --diffusion-checkpoint outp
     --timesteps 500 \
     --epochs 200 \
     --lr 1e-4
-```
