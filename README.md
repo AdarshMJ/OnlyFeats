@@ -138,3 +138,17 @@ python latent_diffusion_conditional.py --mode sample --diffusion-checkpoint outp
     --timesteps 500 \
     --epochs 200 \
     --lr 1e-4
+```
+
+
+#### Sampling
+```python
+python graph_diffusion_conditional.py \
+    --mode sample \
+    --checkpoint outputs_graph_diffusion/best_model.pth \
+    --num-samples 10 \
+    --target-homophily 0.5 \
+    --num-nodes 100 \
+    --output-dir outputs_graph_diffusion
+``` 
+
