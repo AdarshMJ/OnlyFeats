@@ -858,6 +858,10 @@ def sample_graphs(args):
     with open(out_file, 'wb') as f:
         pickle.dump(graphs_out, f)
     print(f"Saved to {out_file}")
+    
+    # Visualize
+    visualize_generated_graphs_grid(graphs_out, args.output_dir, num_viz=min(10, args.num_samples))
+    print(f"✓ Visualization complete!")
 
 
 def measure_label_homophily(edge_index: torch.Tensor, y: torch.Tensor) -> float:
@@ -867,6 +871,49 @@ def measure_label_homophily(edge_index: torch.Tensor, y: torch.Tensor) -> float:
     src, dst = edge_index
     same_class = (y[src] == y[dst]).sum().item()
     return same_class / edge_index.size(1)
+
+
+def visualize_generated_graphs_grid(graphs_out: List[Dict], output_dir: str, num_viz: int = 5):
+    """Visualize generated graphs in a grid layout."""
+    num_viz = min(num_viz, len(graphs_out))
+    if num_viz == 0:
+        return
+    
+    fig, axes = plt.subplots(1, num_viz, figsize=(5 * num_viz, 5))
+    if num_viz == 1:
+        axes = [axes]
+    
+    palette = ['#FF6B6B', '#4ECDC4', '#45B7D1']
+    
+    for idx in range(num_viz):
+        ax = axes[idx]
+        G = graphs_out[idx]['graph']
+        Y = graphs_out[idx]['Y'].numpy()
+        measured_hom = graphs_out[idx]['measured_homophily']
+        
+        # Use Kamada-Kawai layout (more natural structure)
+        try:
+            pos = nx.kamada_kawai_layout(G)
+        except:
+            # Fallback to spring if KK fails
+            pos = nx.spring_layout(G, k=0.5, iterations=50)
+        
+        # Color nodes by class
+        node_colors = [palette[int(Y[node]) % len(palette)] for node in G.nodes()]
+        
+        nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=100, ax=ax)
+        nx.draw_networkx_edges(G, pos, alpha=0.3, width=0.5, ax=ax)
+        
+        # Stats as axis label
+        ax.set_xlabel(f'Nodes: {G.number_of_nodes()}, Edges: {G.number_of_edges()}\nHomophily: {measured_hom:.3f}', 
+                     fontsize=20)
+        ax.axis('off')
+    
+    plt.tight_layout()
+    os.makedirs(output_dir, exist_ok=True)
+    plt.savefig(os.path.join(output_dir, 'generated_graphs.png'), dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"✓ Saved visualization to {output_dir}/generated_graphs.png")
 
 
 # ========================= Main =========================
